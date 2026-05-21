@@ -79,6 +79,11 @@ class Settings(BaseSettings):
     # --- Observabilidade ---
     metrics_port: int = 8001  # endpoint /metrics (Prometheus). Console=8080, Trino=8085.
 
+    # --- Reprocessamento Kappa (Marco 6) ---
+    # Consumer group de replay — grupo descartável, nunca conflita com o sink live.
+    # O CLI adiciona sufixo de timestamp: `pulso-kappa-replay-<unix_ts>`.
+    replay_consumer_group_prefix: str = "pulso-kappa-replay"
+
     # --- Governanca / Lineage (Marco 5) ---
     # URL vazia desliga o OpenLineage (no-op). Em dev com `make up-lineage`: http://localhost:5000.
     openlineage_url: str = ""

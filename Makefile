@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 
-.PHONY: help up up-lineage down logs install lint test schema-check schema-check-offline check ksql-test ksql-apply sink iceberg-maintain lake-mirror dbt-seed-sync dbt-build dbt-test serve soda-check freshness-check
+.PHONY: help up up-lineage down logs install lint test schema-check schema-check-offline check ksql-test ksql-apply sink iceberg-maintain lake-mirror dbt-seed-sync dbt-build dbt-test serve soda-check freshness-check replay backtest
 
 help: ## Lista os targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -69,3 +69,9 @@ soda-check: ## Checks de qualidade Soda contra o lake DuckDB (requer make dbt-bu
 
 freshness-check: ## Verifica SLO de freshness do lake (exit 1 se violado)
 	uv run python services/freshness_emitter.py
+
+replay: ## Kappa replay: reprocessa trades.raw+candles desde o início (precisa de `make up`)
+	uv run python services/kappa_replay.py --from-beginning
+
+backtest: ## Lista snapshots Iceberg e prova reproducibilidade via time-travel
+	uv run python services/backtest.py --list-snapshots

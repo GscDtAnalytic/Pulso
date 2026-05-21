@@ -63,7 +63,15 @@ quality checks em `governance/soda/` — OHLC invariant, gap de minuto M1, volum
 soda-check`); SLO YAML + Prometheus alerting rules em `governance/`; freshness emitter
 standalone em `services/freshness_emitter.py` (`make freshness-check`; exit 1 se SLO
 violado); CI `governance-check` valida YAML offline. 5 pilares: freshness ✅ volume ✅
-distribution ✅ schema ✅ lineage ✅. Próximo: Marco 6 (reprocessamento Kappa).
+distribution ✅ schema ✅ lineage ✅. **Marco 6 (reprocessamento Kappa) concluído**:
+`services/kappa_replay.py` — `BoundedConsumer` para ao HWM do startup, grupo descartável,
+`--from-beginning | --from-timestamp ISO | --pipeline trades|candles|all | --dry-run`;
+`services/backtest.py` — time-travel Iceberg→DuckDB, analytics + invariantes OHLC/preço,
+`--as-of | --snapshot-id | --list-snapshots`; `libs/pulso-storage/src/pulso_storage/replay.py`
+— `is_caught_up` (puro, testável offline) + `ReplaySummary`; `RUNBOOK_KAPPA.md` — replay,
+backfill, migração ksqlDB, rollback via snapshot Iceberg, checklist operacional; `make replay`
+/ `make backtest`. 14 testes offline cobrem `is_caught_up`, throughput, reproducibilidade
+do time-travel e idempotência do replay (cerne do Kappa). Próximo: Marco 7 (Eixo B LLM).
 Ver roadmap em `ARCHITECTURE_PROPOSAL.md`.
 
 ## O que NÃO fazer
