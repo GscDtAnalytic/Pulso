@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 
-.PHONY: help up down logs install lint test schema-check schema-check-offline check
+.PHONY: help up down logs install lint test schema-check schema-check-offline check ksql-test ksql-apply
 
 help: ## Lista os targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -33,3 +33,9 @@ schema-check-offline: ## Valida so a parseabilidade dos .avsc (sem SR)
 	uv run python tools/check_schema_compat.py --offline
 
 check: lint test schema-check-offline ## Suite local rapida (pre-commit/CI)
+
+ksql-test: ## Testes de topologia ksqlDB (offline, via docker — precisa de docker)
+	bash ksqldb/tests/run.sh
+
+ksql-apply: ## Aplica os ksqldb/*.sql no ksqldb da stack local (precisa de `make up`)
+	cat ksqldb/[0-9]*.sql | docker compose exec -T ksqldb ksql http://localhost:8088

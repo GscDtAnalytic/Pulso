@@ -22,6 +22,15 @@ jobs:
       - name: Testes
         run: uv run pytest
 
+  ksql-test:
+    # Testes de topologia ksqlDB: o ksql-test-runner roda offline (sem broker, sem
+    # Schema Registry real) dentro da imagem do ksqldb-server. GH Actions tem docker.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Testes de topologia (ksql-test-runner)
+        run: make ksql-test
+
   schema-compat:
     # Enforcement de data contracts (shift-left). No CI validamos parseabilidade
     # dos .avsc; a compatibilidade BACKWARD ao vivo contra o Schema Registry roda

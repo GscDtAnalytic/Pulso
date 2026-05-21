@@ -1,0 +1,5 @@
+{
+  "outputs": [
+    {"topic": "trades.raw.dlq", "key": "ETH-USD", "value": {"trade_id": "late", "exchange": "coinbase", "price": 50.0, "quantity": 2.0, "side": "SELL", "event_time": 1700000050000, "ingest_time": 1700000075000}}
+  ]
+}

@@ -2,19 +2,18 @@
   "type": "record",
   "name": "Candle",
   "namespace": "io.pulso.market",
-  "doc": "Candle OHLCV agregado por janela de event time (tumbling). Produzido pelo ksqlDB. Invariante: low <= open,close <= high.",
+  "doc": "Candle OHLCV agregado por janela de event time (tumbling) pelo ksqlDB. Emitido por janela APOS o grace period (sealed). Invariante: low <= open,close <= high. O simbolo canonico NAO esta no value: e a chave Kafka da mensagem (group key = message key na TABLE agregada). Difere de trade.avsc de proposito — candle e produzido pelo ksqlDB.",
   "fields": [
-    { "name": "symbol", "type": "string", "doc": "Simbolo canonico." },
-    { "name": "interval", "type": { "type": "enum", "name": "Interval", "symbols": ["M1", "M5", "H1"] }, "doc": "Tamanho da janela: 1min, 5min, 1h." },
+    { "name": "interval", "type": "string", "doc": "Tamanho da janela: 'M1' | 'M5' | 'H1'. String (nao enum): ksqlDB emite o literal da query." },
     { "name": "window_start", "type": { "type": "long", "logicalType": "timestamp-millis" }, "doc": "Inicio da janela (event time)." },
     { "name": "window_end", "type": { "type": "long", "logicalType": "timestamp-millis" }, "doc": "Fim da janela (event time)." },
-    { "name": "open", "type": "double", "doc": "Primeiro preco da janela (por event time)." },
+    { "name": "open", "type": "double", "doc": "Primeiro preco da janela (EARLIEST_BY_OFFSET; ordem de offset dentro da janela)." },
     { "name": "high", "type": "double", "doc": "Maior preco." },
     { "name": "low", "type": "double", "doc": "Menor preco." },
-    { "name": "close", "type": "double", "doc": "Ultimo preco." },
+    { "name": "close", "type": "double", "doc": "Ultimo preco (LATEST_BY_OFFSET)." },
     { "name": "volume", "type": "double", "doc": "Soma das quantidades." },
     { "name": "vwap", "type": "double", "doc": "Volume-weighted average price = sum(price*qty)/sum(qty)." },
     { "name": "trade_count", "type": "long", "doc": "Numero de trades agregados na janela." },
-    { "name": "is_final", "type": "boolean", "doc": "true quando a janela fechou apos o grace period; false em emissoes intermediarias.", "default": false }
+    { "name": "is_final", "type": "boolean", "doc": "Sempre true: o topico carrega apenas janelas seladas (EMIT FINAL, pos-grace). Estado live de janelas abertas e servido por pull query, nao por este topico.", "default": true }
   ]
 }

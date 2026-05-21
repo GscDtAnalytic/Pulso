@@ -90,7 +90,7 @@ Critério de "feito" = roda no docker-compose + tem teste + tem o item de observ
 
 - **Marco 0 — Fundação** ✅: exchanges/símbolos (seed CSV), uv workspace + import-linter, docker-compose, contratos Avro + CI compat check, README + esta proposta.
 - **Marco 1 — Ingestão**: producer WebSocket idempotente, reconnect/circuit breaker/gap detection, métricas Prometheus.
-- **Marco 2 — Stream processing**: ksqlDB OHLC/VWAP/vol, event-time, grace + DLQ, exactly_once_v2, pull queries, testes de topologia.
+- **Marco 2 — Stream processing** ✅: ksqlDB OHLC/VWAP/vol, event-time, grace + DLQ, exactly_once_v2, pull queries, testes de topologia (`ksql-test-runner`). SQL versionado em `ksqldb/`; candles via `EMIT FINAL` (só janelas seladas no tópico); volatilidade e estado live de janela aberta via pull query.
 - **Marco 3 — Lakehouse**: sink idempotente → Iceberg bronze/silver, particionamento, manutenção, time-travel.
 - **Marco 4 — Modelagem e serving**: dbt marts + testes, FastAPI, dashboard React.
 - **Marco 5 — Governança**: contracts completos no CI, GE/Soda, OpenLineage→Marquez, 5 pilares + freshness emitter + alertas + SLO de lag.

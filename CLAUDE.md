@@ -36,7 +36,15 @@ Quebrar essa ordem faz `make lint` (import-linter) falhar. É proposital.
 
 ## Status
 
-Marco 1 (ingestão) concluído: producer WebSocket idempotente (Binance+Coinbase) → `trades.raw`/`orderbook.delta`, reconnect + circuit breaker + gap detection, métricas Prometheus em `:8001/metrics`. Rodar: `uv run python -m pulso_ingest`. Próximo: Marco 2 (ksqlDB OHLC/VWAP, event-time, grace+DLQ). Ver roadmap em `ARCHITECTURE_PROPOSAL.md`.
+Marco 2 (stream processing) concluído: SQL ksqlDB versionado em `ksqldb/` — candles OHLCV
+m1/m5/h1 por event-time com `EMIT FINAL` (tópico só carrega janelas seladas), volatilidade
+HOPPING e estado live de janela aberta via pull query, DLQ de late data em `trades.raw.dlq`.
+Testes de topologia offline via `ksql-test-runner` (`make ksql-test`); aplicar na stack:
+`make ksql-apply`. Ressalva: o `ksql-test-runner` standalone não dispara `EMIT FINAL` —
+ver `ksqldb/README.md`. Marco 1 (ingestão): producer WebSocket idempotente (Binance+Coinbase)
+→ `trades.raw`/`orderbook.delta`, reconnect + circuit breaker + gap detection, métricas
+Prometheus em `:8001/metrics` (`uv run python -m pulso_ingest`). Próximo: Marco 3 (sink
+idempotente → Iceberg). Ver roadmap em `ARCHITECTURE_PROPOSAL.md`.
 
 ## O que NÃO fazer
 

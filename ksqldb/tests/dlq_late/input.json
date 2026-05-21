@@ -1,0 +1,6 @@
+{
+  "inputs": [
+    {"topic": "trades.raw", "key": "BTC-USD", "timestamp": 1700000040000, "value": {"trade_id": "ontime", "exchange": "binance", "price": 100.0, "quantity": 1.0, "side": "BUY", "event_time": 1700000040000, "ingest_time": 1700000040300}},
+    {"topic": "trades.raw", "key": "ETH-USD", "timestamp": 1700000050000, "value": {"trade_id": "late", "exchange": "coinbase", "price": 50.0, "quantity": 2.0, "side": "SELL", "event_time": 1700000050000, "ingest_time": 1700000075000}}
+  ]
+}

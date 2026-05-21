@@ -1,0 +1,7 @@
+{
+  "inputs": [
+    {"topic": "trades.raw", "key": "BTC-USD", "timestamp": 1700000040000, "value": {"trade_id": "t1", "exchange": "binance", "price": 100.0, "quantity": 1.0, "side": "BUY", "event_time": 1700000040000, "ingest_time": 1700000040300}},
+    {"topic": "trades.raw", "key": "BTC-USD", "timestamp": 1700000055000, "value": {"trade_id": "t2", "exchange": "binance", "price": 200.0, "quantity": 1.0, "side": "SELL", "event_time": 1700000055000, "ingest_time": 1700000055300}},
+    {"topic": "trades.raw", "key": "BTC-USD", "timestamp": 1700000080000, "value": {"trade_id": "t3", "exchange": "coinbase", "price": 150.0, "quantity": 2.0, "side": "BUY", "event_time": 1700000080000, "ingest_time": 1700000080300}}
+  ]
+}
