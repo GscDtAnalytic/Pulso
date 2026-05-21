@@ -220,7 +220,7 @@ def run(settings: Settings | None = None) -> None:  # noqa: C901
     start_http_server(settings.anomaly_detector_metrics_port)
     logger.info("Anomaly detector iniciado | metrics=:{}", settings.anomaly_detector_metrics_port)
 
-    sr = SchemaRegistryClient({"url": settings.schema_registry_url})
+    sr = SchemaRegistryClient(settings.schema_registry_config())
     candle_de = AvroDeserializer(sr)
     anomaly_ser = AvroSerializer(sr, load_schema_str("anomaly.avsc"))
     key_de = StringDeserializer("utf_8")
@@ -232,6 +232,7 @@ def run(settings: Settings | None = None) -> None:  # noqa: C901
             "group.id": settings.anomaly_consumer_group,
             "enable.auto.commit": True,
             "auto.offset.reset": "latest",  # so anomalias novas; replay via kappa_replay
+            **settings.kafka_security_config(),
         }
     )
     consumer.subscribe([settings.serve_candle_topic])  # candles.m1
@@ -242,6 +243,7 @@ def run(settings: Settings | None = None) -> None:  # noqa: C901
             "enable.idempotence": True,
             "acks": "all",
             "compression.type": "zstd",
+            **settings.kafka_security_config(),
         }
     )
 

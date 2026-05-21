@@ -27,23 +27,15 @@ variable "image_tag" {
   default     = "latest"
 }
 
-variable "kafka_bootstrap" {
-  description = "Endereço do broker Kafka/Redpanda Cloud (ex: seed-xxx.redpanda.cloud:9092)."
-  type        = string
-  sensitive   = true
-  default     = ""
-}
-
-variable "schema_registry_url" {
-  description = "URL do Schema Registry (Redpanda Cloud ou self-hosted)."
-  type        = string
-  sensitive   = true
-  default     = ""
-}
-
 variable "anthropic_api_key" {
   description = "Chave de API Anthropic para o LLM explainer (Marco 7)."
   type        = string
   sensitive   = true
+  default     = ""
+}
+
+variable "alert_email" {
+  description = "E-mail que recebe os alertas de SLO via Cloud Monitoring. Vazio = sem canal de notificação."
+  type        = string
   default     = ""
 }

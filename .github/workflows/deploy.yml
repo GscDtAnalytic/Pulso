@@ -18,6 +18,12 @@ jobs:
     # Só executa se o CI passou
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
+    # Gate de aprovação manual: o ambiente 'production' precisa de required
+    # reviewers configurados em Settings → Environments → production. Sem isso
+    # o deploy pausa esperando aprovação humana (ver RUNBOOK_PROD.md §7).
+    environment:
+      name: production
+
     env:
       REGION:     ${{ vars.GCP_REGION }}
       PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}

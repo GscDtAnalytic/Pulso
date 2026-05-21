@@ -55,9 +55,10 @@ class BatchingConsumer:
                 "group.id": settings.sink_consumer_group,
                 "enable.auto.commit": False,  # progresso vive no snapshot Iceberg
                 "auto.offset.reset": "earliest",
+                **settings.kafka_security_config(),
             }
         )
-        sr = SchemaRegistryClient({"url": settings.schema_registry_url})
+        sr = SchemaRegistryClient(settings.schema_registry_config())
         self._avro = AvroDeserializer(sr)
         self._key_de = StringDeserializer("utf_8")
         self._assign(initial_offsets)

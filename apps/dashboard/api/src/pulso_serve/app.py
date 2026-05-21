@@ -16,6 +16,9 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import make_asgi_app
 from pulso_infra import get_settings
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from pulso_serve import metrics
 from pulso_serve.anomaly_store import AnomalyStore, build_anomaly_store
@@ -26,6 +29,15 @@ from pulso_serve.store import MarketStore, build_store
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
+
+
+def _client_ip(request: Request) -> str:
+    """IP do cliente para o rate limiting. Atrás do Cloud Run o IP real está no
+    primeiro hop do X-Forwarded-For; `request.client` é o proxy do Google."""
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
 
 
 def create_app(
@@ -70,6 +82,13 @@ def create_app(
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Rate limiting (item 9): a API é pública (vitrine), mas limitada por IP
+    # para conter abuso. Limiter por app — em testes cada create_app é isolado.
+    limiter = Limiter(key_func=_client_ip, default_limits=["120/minute"])
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_middleware(SlowAPIMiddleware)
 
     @app.middleware("http")
     async def _metrics_middleware(request: Request, call_next) -> Response:

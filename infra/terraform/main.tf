@@ -12,7 +12,11 @@ resource "google_project_service" "apis" {
     "secretmanager.googleapis.com",
     "storage.googleapis.com",
     "iam.googleapis.com",
-    "iamcredentials.googleapis.com",  # Workload Identity Federation (CI/CD)
+    "iamcredentials.googleapis.com",
+    "compute.googleapis.com",
+    "monitoring.googleapis.com",
+    "cloudscheduler.googleapis.com",
+    "servicenetworking.googleapis.com",
   ])
 
   project            = var.project_id
@@ -27,14 +31,17 @@ locals {
   common_env = {
     PULSO_ENV      = "prod"
     PULSO_LOG_JSON = "true"
+    # Segurança do barramento (item 5): clientes falam SASL_SSL com o broker.
+    PULSO_KAFKA_SECURITY_PROTOCOL = "SASL_SSL"
+    PULSO_KAFKA_SASL_USERNAME     = "pulso"
   }
 
   # Secrets comuns: Kafka + Schema Registry + catálogo Iceberg
   common_secrets = {
-    PULSO_KAFKA_BOOTSTRAP      = google_secret_manager_secret.kafka_bootstrap.secret_id
-    PULSO_SCHEMA_REGISTRY_URL  = google_secret_manager_secret.schema_registry_url.secret_id
-    PULSO_ICEBERG_CATALOG_URI  = google_secret_manager_secret.iceberg_catalog_uri.secret_id
-    PULSO_ICEBERG_WAREHOUSE    = google_secret_manager_secret.iceberg_warehouse.secret_id
+    PULSO_KAFKA_BOOTSTRAP     = google_secret_manager_secret.kafka_bootstrap.secret_id
+    PULSO_SCHEMA_REGISTRY_URL = google_secret_manager_secret.schema_registry_url.secret_id
+    PULSO_ICEBERG_CATALOG_URI = google_secret_manager_secret.iceberg_catalog_uri.secret_id
+    PULSO_ICEBERG_WAREHOUSE   = google_secret_manager_secret.iceberg_warehouse.secret_id
   }
 
   # Cloud SQL connection name para montagem do proxy unix socket

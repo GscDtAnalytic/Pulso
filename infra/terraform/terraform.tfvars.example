@@ -7,9 +7,11 @@ environment      = "prod"
 lake_bucket_name = "pulso-lakehouse"
 image_tag        = "latest"
 
-# Redpanda Cloud (seed broker) ou self-hosted
-kafka_bootstrap     = "seed-xxxxxxxxxxxx.any.us-east1.cloud.redpanda.com:9092"
-schema_registry_url = "https://schema-registry-xxxx.any.us-east1.cloud.redpanda.com"
-
 # Chave Anthropic para o LLM explainer (Marco 7)
 anthropic_api_key = "sk-ant-..."
+
+# E-mail que recebe os alertas de SLO (Cloud Monitoring). Vazio = sem notificação.
+alert_email = "voce@exemplo.com"
+
+# Kafka/Redpanda e ksqlDB são provisionados automaticamente via Compute Engine VM.
+# Não é necessário configurar kafka_bootstrap ou schema_registry_url aqui.

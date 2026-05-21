@@ -32,19 +32,39 @@ jobs:
         run: make ksql-test
 
   schema-compat:
-    # Enforcement de data contracts (shift-left). No CI validamos parseabilidade
-    # dos .avsc; a compatibilidade BACKWARD ao vivo contra o Schema Registry roda
-    # localmente via `make schema-check` (Redpanda do docker-compose). Subir um SR
-    # confiavel no runner sera adicionado quando o producer/SR estiver no compose de CI.
+    # Enforcement de data contracts (shift-left): parse offline + compatibilidade
+    # BACKWARD AO VIVO. Sobe um Redpanda, registra os contratos da branch
+    # principal como baseline e checa os do PR contra ela — quebra de schema
+    # bloqueia o merge.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # precisa de origin/main para o baseline
       - uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
       - run: uv sync --all-extras --dev
-      - name: Validar contratos Avro (parse)
-        run: uv run python tools/check_schema_compat.py --offline
+      - name: Subir Redpanda (Schema Registry)
+        run: |
+          docker run -d --name redpanda -p 18081:18081 \
+            redpandadata/redpanda:v24.2.7 \
+            redpanda start --smp 1 --memory 1G --reserve-memory 0M \
+            --overprovisioned --schema-registry-addr 0.0.0.0:18081
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:18081/subjects && break || sleep 2
+          done
+      - name: Extrair contratos de origin/main (baseline)
+        run: |
+          mkdir -p /tmp/baseline
+          git archive origin/main contracts 2>/dev/null \
+            | tar -x -C /tmp/baseline --strip-components=1 \
+            || echo "sem baseline em origin/main (contratos novos)"
+      - name: Validar contratos Avro (parse + compat BACKWARD ao vivo)
+        run: |
+          uv run python tools/check_schema_compat.py \
+            --registry http://localhost:18081 \
+            --baseline /tmp/baseline
 
   governance-check:
     # Valida os artefatos de governanca (SLO YAML, Soda YAML, Prometheus rules)

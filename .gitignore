@@ -13,6 +13,15 @@ uv.lock.bak
 
 # Ambiente / segredos
 .env
+infra/terraform/terraform.tfvars
+
+# Terraform — state contém segredos; .terraform/ é cache local
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+infra/terraform/backend.hcl
 
 # Dados locais
 data/
@@ -23,6 +32,7 @@ warehouse/
 dbt/target/
 dbt/dbt_packages/
 dbt/logs/
+dbt/.user.yml
 
 # Frontend
 node_modules/

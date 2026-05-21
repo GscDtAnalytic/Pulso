@@ -7,9 +7,24 @@ chaves apontam para Redpanda self-hosted/Cloud e GCS.
 
 from __future__ import annotations
 
+import tempfile
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+@lru_cache(maxsize=1)
+def _materialize_ca(pem: str) -> str:
+    """Grava o CA cert (conteudo PEM vindo por env) num arquivo temporario.
+
+    librdkafka e o SchemaRegistryClient querem um caminho de arquivo
+    (`ssl.ca.location`). Em prod o PEM chega como secret env var; aqui ele
+    vira arquivo uma vez por processo.
+    """
+    path = Path(tempfile.gettempdir()) / "pulso-kafka-ca.crt"
+    path.write_text(pem)
+    return str(path)
 
 
 class Settings(BaseSettings):
@@ -20,6 +35,19 @@ class Settings(BaseSettings):
     # --- Kafka / Redpanda ---
     kafka_bootstrap: str = "localhost:19092"
     schema_registry_url: str = "http://localhost:18081"
+
+    # --- Seguranca do barramento (prod) ---
+    # Dev: PLAINTEXT (docker-compose). Prod: SASL_SSL + SCRAM-SHA-256 contra o
+    # Redpanda self-hosted. Ver kafka_security_config()/schema_registry_config().
+    kafka_security_protocol: str = "PLAINTEXT"  # PLAINTEXT | SASL_SSL
+    kafka_sasl_mechanism: str = "SCRAM-SHA-256"
+    kafka_sasl_username: str = ""
+    kafka_sasl_password: str = ""
+    # CA cert que valida o TLS do broker e do Schema Registry. Em dev/local
+    # aponta-se um arquivo (`_location`); em prod o conteudo PEM chega por env
+    # (`_pem`, secret) e e materializado em arquivo por `_ca_path()`.
+    kafka_ssl_ca_location: str = ""
+    kafka_ssl_ca_pem: str = ""
 
     # --- Object storage (Iceberg). Local = MinIO; prod = GCS. ---
     # Endpoint vazio => usa GCS nativo (prod). Preenchido => S3-compativel (MinIO/dev).
@@ -124,6 +152,42 @@ class Settings(BaseSettings):
     env: str = "dev"  # dev | prod
     log_level: str = "INFO"
     log_json: bool = False  # True em prod (Cloud Logging)
+
+    def _ca_path(self) -> str:
+        """Caminho do CA cert. Prefere o arquivo explicito; senao materializa
+        o PEM vindo por env. String vazia quando nao ha CA configurado."""
+        if self.kafka_ssl_ca_location:
+            return self.kafka_ssl_ca_location
+        if self.kafka_ssl_ca_pem:
+            return _materialize_ca(self.kafka_ssl_ca_pem)
+        return ""
+
+    def kafka_security_config(self) -> dict[str, str]:
+        """Config de seguranca do cliente Kafka (librdkafka).
+
+        Vazio em dev (PLAINTEXT). Em prod, SASL_SSL + SCRAM-SHA-256 + CA cert.
+        Cada call site faz `Consumer({**base, **settings.kafka_security_config()})`.
+        """
+        if self.kafka_security_protocol == "PLAINTEXT":
+            return {}
+        cfg = {
+            "security.protocol": self.kafka_security_protocol,
+            "sasl.mechanism": self.kafka_sasl_mechanism,
+            "sasl.username": self.kafka_sasl_username,
+            "sasl.password": self.kafka_sasl_password,
+        }
+        ca = self._ca_path()
+        if ca:
+            cfg["ssl.ca.location"] = ca
+        return cfg
+
+    def schema_registry_config(self) -> dict[str, str]:
+        """Config do SchemaRegistryClient — URL + CA cert quando em HTTPS."""
+        cfg: dict[str, str] = {"url": self.schema_registry_url}
+        ca = self._ca_path()
+        if ca and self.schema_registry_url.startswith("https"):
+            cfg["ssl.ca.location"] = ca
+        return cfg
 
 
 @lru_cache(maxsize=1)

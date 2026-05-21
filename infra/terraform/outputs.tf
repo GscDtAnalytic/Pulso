@@ -1,3 +1,8 @@
+output "redpanda_internal_ip" {
+  description = "IP interno da VM Redpanda (Kafka broker + Schema Registry + ksqlDB)."
+  value       = google_compute_address.redpanda_internal.address
+}
+
 output "lake_bucket" {
   description = "Nome do bucket GCS do lakehouse Iceberg."
   value       = google_storage_bucket.lake.name

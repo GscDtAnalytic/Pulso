@@ -10,11 +10,15 @@ terraform {
       source  = "hashicorp/random"
       version = "~> 3.6"
     }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
+    }
   }
 
-  # Descomente para armazenar o state remotamente (GCS recomendado para equipe):
-  # backend "gcs" {
-  #   bucket = "pulso-tf-state-<project_id>"
-  #   prefix = "pulso/state"
-  # }
+  # State remoto no GCS — obrigatório: o state contém segredos
+  # (random_password do banco). Config parcial: bucket/prefix vêm de
+  # backend.hcl via `terraform init -backend-config=backend.hcl`.
+  # Bootstrap do bucket: ver RUNBOOK_PROD.md §4.
+  backend "gcs" {}
 }

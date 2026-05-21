@@ -70,11 +70,52 @@ def check_compat(registry: str, subject: str, schema: dict) -> tuple[bool, str]:
     return is_compat, "compativel" if is_compat else "INCOMPATIVEL com a politica do subject"
 
 
+def register_baseline(registry: str, baseline_dir: Path) -> None:
+    """Registra os schemas de `baseline_dir` no SR como a linha de base.
+
+    Usado no CI: registra os contratos da branch principal antes de checar os
+    da branch do PR — assim o check BACKWARD compara contra o estado real, nao
+    contra um SR vazio (onde todo subject seria "primeira versao").
+    """
+    import requests
+
+    for path in sorted(baseline_dir.glob("*.avsc")):
+        schema = json.loads(path.read_text(encoding="utf-8"))
+        for subject in SCHEMA_SUBJECTS.get(path.name, []):
+            # Fixa a politica BACKWARD no subject (data contract explicito).
+            requests.put(
+                f"{registry}/config/{subject}",
+                data=json.dumps({"compatibility": "BACKWARD"}),
+                headers={"Content-Type": "application/vnd.schemaregistry.v1+json"},
+                timeout=5,
+            ).raise_for_status()
+            resp = requests.post(
+                f"{registry}/subjects/{subject}/versions",
+                data=json.dumps({"schema": json.dumps(schema), "schemaType": "AVRO"}),
+                headers={"Content-Type": "application/vnd.schemaregistry.v1+json"},
+                timeout=5,
+            )
+            resp.raise_for_status()
+            print(f"  baseline registrado: {subject}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--registry", default=DEFAULT_REGISTRY)
     parser.add_argument("--offline", action="store_true", help="So valida parse, sem SR.")
+    parser.add_argument(
+        "--baseline",
+        type=Path,
+        help="Diretorio com os .avsc da branch principal; registra-os como linha de base.",
+    )
     args = parser.parse_args()
+
+    if args.baseline and not args.offline:
+        if args.baseline.is_dir():
+            print(f"Registrando baseline de {args.baseline} ...")
+            register_baseline(args.registry, args.baseline)
+        else:
+            print(f"  ! baseline {args.baseline} ausente — seguindo sem linha de base.")
 
     avsc_files = sorted(CONTRACTS_DIR.glob("*.avsc"))
     if not avsc_files:

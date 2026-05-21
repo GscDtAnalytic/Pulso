@@ -246,7 +246,7 @@ def run(settings: Settings | None = None) -> None:  # noqa: C901
     store: AnomalyStore = build_anomaly_store(settings.anomaly_duckdb_path)
     llm_client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
 
-    sr = SchemaRegistryClient({"url": settings.schema_registry_url})
+    sr = SchemaRegistryClient(settings.schema_registry_config())
     anomaly_de = AvroDeserializer(sr)
     key_de = StringDeserializer("utf_8")
 
@@ -256,6 +256,7 @@ def run(settings: Settings | None = None) -> None:  # noqa: C901
             "group.id": settings.llm_consumer_group,
             "enable.auto.commit": True,
             "auto.offset.reset": "earliest",
+            **settings.kafka_security_config(),
         }
     )
     consumer.subscribe([settings.topic_anomaly])

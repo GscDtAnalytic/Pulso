@@ -68,7 +68,7 @@ def is_caught_up(current: Offsets, hwm: Offsets) -> bool:
     return True
 
 
-def _snapshot_hwm(bootstrap: str, topics: tuple[str, ...]) -> Offsets:
+def _snapshot_hwm(settings: Settings, topics: tuple[str, ...]) -> Offsets:
     """Registra o HWM de cada partição usando um consumer temporário.
 
     Chamado antes de criar o consumer principal para garantir que o HWM
@@ -76,9 +76,10 @@ def _snapshot_hwm(bootstrap: str, topics: tuple[str, ...]) -> Offsets:
     """
     tmp = Consumer(
         {
-            "bootstrap.servers": bootstrap,
+            "bootstrap.servers": settings.kafka_bootstrap,
             "group.id": "__pulso-hwm-probe__",
             "enable.auto.commit": False,
+            **settings.kafka_security_config(),
         }
     )
     hwm: Offsets = {}
@@ -101,7 +102,7 @@ def _snapshot_hwm(bootstrap: str, topics: tuple[str, ...]) -> Offsets:
 
 
 def _offsets_for_timestamp(
-    bootstrap: str,
+    settings: Settings,
     topics: tuple[str, ...],
     ts: datetime,
 ) -> Offsets:
@@ -113,9 +114,10 @@ def _offsets_for_timestamp(
     ts_ms = int(ts.timestamp() * 1000)
     tmp = Consumer(
         {
-            "bootstrap.servers": bootstrap,
+            "bootstrap.servers": settings.kafka_bootstrap,
             "group.id": "__pulso-ts-probe__",
             "enable.auto.commit": False,
+            **settings.kafka_security_config(),
         }
     )
     result: Offsets = {}
@@ -168,16 +170,14 @@ class BoundedConsumer:
         self._decode = decode
 
         # 1. HWM antes de criar o consumer (snapshot do log agora).
-        self._hwm = _snapshot_hwm(settings.kafka_bootstrap, topics)
+        self._hwm = _snapshot_hwm(settings, topics)
         self._current: Offsets = {}
 
         # 2. Resolver offsets de início.
         if from_timestamp is not None:
             if from_timestamp.tzinfo is None:
                 from_timestamp = from_timestamp.replace(tzinfo=UTC)
-            resolved = _offsets_for_timestamp(
-                settings.kafka_bootstrap, topics, from_timestamp
-            )
+            resolved = _offsets_for_timestamp(settings, topics, from_timestamp)
         else:
             resolved = start_offsets or {}
 
@@ -188,9 +188,10 @@ class BoundedConsumer:
                 "group.id": group_id,
                 "enable.auto.commit": False,
                 "auto.offset.reset": "earliest",
+                **settings.kafka_security_config(),
             }
         )
-        sr = SchemaRegistryClient({"url": settings.schema_registry_url})
+        sr = SchemaRegistryClient(settings.schema_registry_config())
         self._avro = AvroDeserializer(sr)
         self._key_de = StringDeserializer("utf_8")
         self._assign(resolved)

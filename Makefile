@@ -84,8 +84,8 @@ llm-explainer: ## Sobe o explicador LLM (requer PULSO_ANTHROPIC_API_KEY e `make 
 
 # --- Marco 8: Cloud GCP ---
 
-tf-init: ## Inicializa o Terraform (infra/terraform/)
-	cd infra/terraform && terraform init
+tf-init: ## Inicializa o Terraform (backend GCS — requer backend.hcl; ver RUNBOOK_PROD.md §4)
+	cd infra/terraform && terraform init -backend-config=backend.hcl
 
 tf-plan: ## Plan do Terraform (requer terraform.tfvars em infra/terraform/)
 	cd infra/terraform && terraform plan -var-file=terraform.tfvars

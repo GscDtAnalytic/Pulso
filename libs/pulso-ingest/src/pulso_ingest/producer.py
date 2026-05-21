@@ -46,9 +46,10 @@ class MarketDataProducer:
                 "acks": "all",
                 "compression.type": "zstd",
                 "linger.ms": 5,
+                **settings.kafka_security_config(),
             }
         )
-        sr = SchemaRegistryClient({"url": settings.schema_registry_url})
+        sr = SchemaRegistryClient(settings.schema_registry_config())
         self._key_ser = StringSerializer("utf_8")
         self._trade_ser = AvroSerializer(sr, load_schema_str("trade.avsc"))
         self._ob_ser = AvroSerializer(sr, load_schema_str("orderbook_delta.avsc"))

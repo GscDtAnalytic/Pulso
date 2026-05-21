@@ -85,9 +85,10 @@ def kafka_candle_stream(settings: Settings) -> CandleStream:
                 "group.id": "pulso-serve-ws",
                 "auto.offset.reset": "latest",
                 "enable.auto.commit": False,
+                **settings.kafka_security_config(),
             }
         )
-        sr = SchemaRegistryClient({"url": settings.schema_registry_url})
+        sr = SchemaRegistryClient(settings.schema_registry_config())
         avro = AvroDeserializer(sr)
         key_de = StringDeserializer("utf_8")
         consumer.subscribe([settings.serve_candle_topic])

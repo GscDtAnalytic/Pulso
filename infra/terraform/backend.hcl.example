@@ -1,0 +1,11 @@
+# Backend GCS do Terraform — configuração parcial.
+#
+# Uso:  cp backend.hcl.example backend.hcl  (e ajuste o bucket)
+#       terraform init -backend-config=backend.hcl
+#
+# O bucket precisa EXISTIR antes do init (bootstrap único — ver
+# RUNBOOK_PROD.md §4). backend.hcl é gitignored (pode conter o
+# project_id real).
+
+bucket = "pulso-tfstate-SEU_PROJECT_ID"
+prefix = "pulso/state"

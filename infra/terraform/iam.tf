@@ -75,21 +75,22 @@ resource "google_storage_bucket_iam_member" "serve_anomaly_viewer" {
 locals {
   # Quais SAs precisam de acesso a quais secrets
   secret_accessors = {
-    "ingest-kafka-bootstrap"     = { sa = google_service_account.pulso_ingest.email,       secret = google_secret_manager_secret.kafka_bootstrap.secret_id }
-    "ingest-schema-registry"     = { sa = google_service_account.pulso_ingest.email,       secret = google_secret_manager_secret.schema_registry_url.secret_id }
-    "sink-kafka-bootstrap"       = { sa = google_service_account.pulso_sink.email,         secret = google_secret_manager_secret.kafka_bootstrap.secret_id }
-    "sink-schema-registry"       = { sa = google_service_account.pulso_sink.email,         secret = google_secret_manager_secret.schema_registry_url.secret_id }
-    "sink-catalog-uri"           = { sa = google_service_account.pulso_sink.email,         secret = google_secret_manager_secret.iceberg_catalog_uri.secret_id }
-    "sink-warehouse"             = { sa = google_service_account.pulso_sink.email,         secret = google_secret_manager_secret.iceberg_warehouse.secret_id }
-    "anomaly-kafka-bootstrap"    = { sa = google_service_account.pulso_anomaly.email,      secret = google_secret_manager_secret.kafka_bootstrap.secret_id }
-    "anomaly-schema-registry"    = { sa = google_service_account.pulso_anomaly.email,      secret = google_secret_manager_secret.schema_registry_url.secret_id }
-    "explainer-kafka-bootstrap"  = { sa = google_service_account.pulso_llm_explainer.email, secret = google_secret_manager_secret.kafka_bootstrap.secret_id }
-    "explainer-schema-registry"  = { sa = google_service_account.pulso_llm_explainer.email, secret = google_secret_manager_secret.schema_registry_url.secret_id }
-    "explainer-anthropic"        = { sa = google_service_account.pulso_llm_explainer.email, secret = google_secret_manager_secret.anthropic_api_key.secret_id }
-    "serve-catalog-uri"          = { sa = google_service_account.pulso_serve.email,        secret = google_secret_manager_secret.iceberg_catalog_uri.secret_id }
-    "serve-warehouse"            = { sa = google_service_account.pulso_serve.email,        secret = google_secret_manager_secret.iceberg_warehouse.secret_id }
-    "serve-kafka-bootstrap"      = { sa = google_service_account.pulso_serve.email,        secret = google_secret_manager_secret.kafka_bootstrap.secret_id }
-    "serve-schema-registry"      = { sa = google_service_account.pulso_serve.email,        secret = google_secret_manager_secret.schema_registry_url.secret_id }
+    "ingest-kafka-bootstrap"    = { sa = google_service_account.pulso_ingest.email, secret = google_secret_manager_secret.kafka_bootstrap.secret_id }
+    "ingest-schema-registry"    = { sa = google_service_account.pulso_ingest.email, secret = google_secret_manager_secret.schema_registry_url.secret_id }
+    "sink-kafka-bootstrap"      = { sa = google_service_account.pulso_sink.email, secret = google_secret_manager_secret.kafka_bootstrap.secret_id }
+    "sink-schema-registry"      = { sa = google_service_account.pulso_sink.email, secret = google_secret_manager_secret.schema_registry_url.secret_id }
+    "sink-catalog-uri"          = { sa = google_service_account.pulso_sink.email, secret = google_secret_manager_secret.iceberg_catalog_uri.secret_id }
+    "sink-warehouse"            = { sa = google_service_account.pulso_sink.email, secret = google_secret_manager_secret.iceberg_warehouse.secret_id }
+    "anomaly-kafka-bootstrap"   = { sa = google_service_account.pulso_anomaly.email, secret = google_secret_manager_secret.kafka_bootstrap.secret_id }
+    "anomaly-schema-registry"   = { sa = google_service_account.pulso_anomaly.email, secret = google_secret_manager_secret.schema_registry_url.secret_id }
+    "explainer-kafka-bootstrap" = { sa = google_service_account.pulso_llm_explainer.email, secret = google_secret_manager_secret.kafka_bootstrap.secret_id }
+    "explainer-schema-registry" = { sa = google_service_account.pulso_llm_explainer.email, secret = google_secret_manager_secret.schema_registry_url.secret_id }
+    "explainer-anthropic"       = { sa = google_service_account.pulso_llm_explainer.email, secret = google_secret_manager_secret.anthropic_api_key.secret_id }
+    "serve-catalog-uri"         = { sa = google_service_account.pulso_serve.email, secret = google_secret_manager_secret.iceberg_catalog_uri.secret_id }
+    "serve-warehouse"           = { sa = google_service_account.pulso_serve.email, secret = google_secret_manager_secret.iceberg_warehouse.secret_id }
+    "serve-kafka-bootstrap"     = { sa = google_service_account.pulso_serve.email, secret = google_secret_manager_secret.kafka_bootstrap.secret_id }
+    "serve-schema-registry"     = { sa = google_service_account.pulso_serve.email, secret = google_secret_manager_secret.schema_registry_url.secret_id }
+    "serve-ksqldb-url"          = { sa = google_service_account.pulso_serve.email, secret = google_secret_manager_secret.ksqldb_url.secret_id }
   }
 }
 
@@ -98,6 +99,63 @@ resource "google_secret_manager_secret_iam_member" "secret_accessors" {
   secret_id = each.value.secret
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${each.value.sa}"
+}
+
+# ─────────────────────────────────────────────────────────────
+# Monitoring — o sidecar GMP de cada serviço escreve métricas no
+# Managed Service for Prometheus (roles/monitoring.metricWriter).
+# ─────────────────────────────────────────────────────────────
+
+resource "google_project_iam_member" "metric_writers" {
+  for_each = toset([
+    google_service_account.pulso_ingest.email,
+    google_service_account.pulso_sink.email,
+    google_service_account.pulso_anomaly.email,
+    google_service_account.pulso_llm_explainer.email,
+    google_service_account.pulso_serve.email,
+  ])
+  project = var.project_id
+  role    = "roles/monitoring.metricWriter"
+  member  = "serviceAccount:${each.value}"
+}
+
+# ─────────────────────────────────────────────────────────────
+# Segurança do barramento (item 5) — acesso aos secrets de TLS/SASL.
+# ─────────────────────────────────────────────────────────────
+
+# Todos os 5 serviços Cloud Run precisam do CA cert e da senha SASL.
+resource "google_secret_manager_secret_iam_member" "bus_security_accessors" {
+  for_each = {
+    for pair in setproduct(
+      [
+        google_service_account.pulso_ingest.email,
+        google_service_account.pulso_sink.email,
+        google_service_account.pulso_anomaly.email,
+        google_service_account.pulso_llm_explainer.email,
+        google_service_account.pulso_serve.email,
+      ],
+      [
+        google_secret_manager_secret.tls_ca.secret_id,
+        google_secret_manager_secret.kafka_sasl_password.secret_id,
+      ]
+    ) : "${pair[0]}|${pair[1]}" => { sa = pair[0], secret = pair[1] }
+  }
+  secret_id = each.value.secret
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${each.value.sa}"
+}
+
+# A VM do broker lê cert, chave, CA e a senha SASL (para criar o usuário SCRAM).
+resource "google_secret_manager_secret_iam_member" "redpanda_secret_accessors" {
+  for_each = toset([
+    google_secret_manager_secret.redpanda_cert.secret_id,
+    google_secret_manager_secret.redpanda_key.secret_id,
+    google_secret_manager_secret.tls_ca.secret_id,
+    google_secret_manager_secret.kafka_sasl_password.secret_id,
+  ])
+  secret_id = each.value
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.redpanda.email}"
 }
 
 # ─────────────────────────────────────────────────────────────
