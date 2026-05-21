@@ -36,7 +36,7 @@ Quebrar essa ordem faz `make lint` (import-linter) falhar. É proposital.
 
 ## Status
 
-Marco 0 (fundação) em andamento. Próximo: Marco 1 (producer de ingestão). Ver roadmap em `ARCHITECTURE_PROPOSAL.md`.
+Marco 1 (ingestão) concluído: producer WebSocket idempotente (Binance+Coinbase) → `trades.raw`/`orderbook.delta`, reconnect + circuit breaker + gap detection, métricas Prometheus em `:8001/metrics`. Rodar: `uv run python -m pulso_ingest`. Próximo: Marco 2 (ksqlDB OHLC/VWAP, event-time, grace+DLQ). Ver roadmap em `ARCHITECTURE_PROPOSAL.md`.
 
 ## O que NÃO fazer
 

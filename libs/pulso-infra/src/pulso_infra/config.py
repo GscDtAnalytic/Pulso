@@ -33,6 +33,23 @@ class Settings(BaseSettings):
     topic_orderbook: str = "orderbook.delta"
     topic_dlq_suffix: str = ".dlq"
 
+    # --- Ingestao (producer, Marco 1) ---
+    producer_client_id: str = "pulso-ingest"
+    binance_ws_url: str = "wss://stream.binance.com:9443/stream"
+    coinbase_ws_url: str = "wss://advanced-trade-ws.coinbase.com"
+    # Falhas consecutivas que abrem o circuito; segundos em OPEN antes de sondar.
+    circuit_failure_threshold: int = 5
+    circuit_reset_timeout: float = 30.0
+    # Backoff de reconnect (exponencial com teto e jitter), em segundos.
+    reconnect_backoff_base: float = 1.0
+    reconnect_backoff_max: float = 30.0
+    # Tamanho maximo de frame WebSocket. Snapshots de order book (Coinbase level2)
+    # passam de 1 MiB; o default da lib (1 MiB) derruba a conexao com 1009.
+    ws_max_message_bytes: int = 16 * 1024 * 1024
+
+    # --- Observabilidade ---
+    metrics_port: int = 8001  # endpoint /metrics (Prometheus). Console=8080, Trino=8085.
+
     # --- Ambiente ---
     env: str = "dev"  # dev | prod
     log_level: str = "INFO"

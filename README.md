@@ -75,7 +75,7 @@ Justificativa completa de cada escolha em [`ARCHITECTURE_PROPOSAL.md`](ARCHITECT
 | Marco | Escopo | Status |
 |---|---|---|
 | **0 — Fundação** | uv workspace, docker-compose, contratos Avro, CI compat check, seed de símbolos | ✅ Em andamento |
-| **1 — Ingestão** | producer WebSocket idempotente, gap detection, métricas | ⬜ |
+| **1 — Ingestão** | producer WebSocket idempotente, gap detection, métricas | ✅ |
 | **2 — Stream processing** | ksqlDB OHLC/VWAP, event-time, grace + DLQ, exactly-once | ⬜ |
 | **3 — Lakehouse** | sink idempotente → Iceberg, particionamento, time-travel | ⬜ |
 | **4 — Modelagem & serving** | dbt marts, FastAPI, dashboard React | ⬜ |
@@ -95,9 +95,13 @@ make up                 # sobe Redpanda + ksqlDB + MinIO + Trino + Marquez + Pos
 make install            # instala o workspace uv (um .venv para tudo)
 make check              # lint + testes + validação de contratos (offline)
 make schema-check       # valida compatibilidade Avro contra o Schema Registry ao vivo
+
+# Marco 1 — producer de ingestão (WebSocket → Kafka, idempotente)
+uv run python -m pulso_ingest                    # Binance + Coinbase
+uv run python -m pulso_ingest --exchange binance # uma exchange só
 ```
 
-UIs locais: Redpanda Console `:8080` · MinIO `:9001` · Trino `:8085` · ksqlDB `:8088`. Lineage (Marquez `:3000`) sobe sob demanda no Marco 5: `docker compose --profile lineage up -d`.
+UIs locais: Redpanda Console `:8080` · MinIO `:9001` · Trino `:8085` · ksqlDB `:8088`. O producer expõe métricas Prometheus em `:8001/metrics` (throughput, skew event-time→ingest, gaps de order book, saúde da conexão). Lineage (Marquez `:3000`) sobe sob demanda no Marco 5: `docker compose --profile lineage up -d`.
 
 ---
 

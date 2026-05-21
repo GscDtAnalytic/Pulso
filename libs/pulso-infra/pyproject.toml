@@ -6,6 +6,7 @@ requires-python = ">=3.11"
 dependencies = [
     "pydantic-settings>=2.4",
     "loguru>=0.7",
+    "prometheus-client>=0.20",
 ]
 
 [build-system]
