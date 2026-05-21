@@ -1,0 +1,129 @@
+# Stack local do Pulso. Tudo Kafka-compativel e open-source; custo zero em dev.
+# Em prod (GCP): Redpanda self-hosted/Cloud, GCS no lugar do MinIO, Trino sob demanda.
+
+services:
+  # --- Barramento de eventos (Kafka-compativel) + Schema Registry embutido ---
+  redpanda:
+    image: redpandadata/redpanda:v24.2.7
+    command:
+      - redpanda start
+      - --smp 1
+      - --memory 1G
+      - --reserve-memory 0M
+      - --overprovisioned
+      - --node-id 0
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
+    ports:
+      - "19092:19092"   # Kafka API (externo)
+      - "18081:18081"   # Schema Registry (externo)
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy:.*true'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  console:
+    image: redpandadata/console:v2.7.2
+    depends_on: [redpanda]
+    ports:
+      - "8080:8080"     # UI: topicos, schemas, consumer lag
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+      KAFKA_SCHEMAREGISTRY_ENABLED: "true"
+      KAFKA_SCHEMAREGISTRY_URLS: http://redpanda:8081
+
+  # --- Stream processing (Marco 2) ---
+  ksqldb:
+    image: confluentinc/ksqldb-server:0.29.0
+    depends_on: [redpanda]
+    ports:
+      - "8088:8088"
+    environment:
+      KSQL_BOOTSTRAP_SERVERS: redpanda:9092
+      KSQL_LISTENERS: http://0.0.0.0:8088
+      KSQL_KSQL_SCHEMA_REGISTRY_URL: http://redpanda:8081
+      KSQL_KSQL_SERVICE_ID: pulso_
+      # exactly-once no processamento (ver wiki: conceitos/exactly-once)
+      KSQL_KSQL_STREAMS_PROCESSING_GUARANTEE: exactly_once_v2
+
+  # --- Object storage S3-compativel (lakehouse Iceberg, Marco 3) ---
+  minio:
+    image: minio/minio:RELEASE.2024-09-13T20-26-02Z
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"     # S3 API
+      - "9001:9001"     # console
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio-data:/data
+
+  createbucket:
+    image: minio/mc:RELEASE.2024-09-16T17-43-14Z
+    depends_on: [minio]
+    entrypoint: >
+      /bin/sh -c "
+      until (/usr/bin/mc alias set local http://minio:9000 minioadmin minioadmin) do sleep 2; done;
+      /usr/bin/mc mb -p local/pulso-lakehouse;
+      exit 0;"
+
+  # --- Query engine sobre Iceberg (Marco 4) ---
+  trino:
+    image: trinodb/trino:457
+    ports:
+      - "8085:8080"
+    depends_on: [minio]
+
+  # --- Lineage (Marco 5) ---
+  # Atras do profile `lineage`: NAO sobe no `make up` padrao. O Marquez exige
+  # config dedicada (MARQUEZ_CONFIG) que sera montada quando o Marco 5 chegar.
+  # Subir so isto: `docker compose --profile lineage up -d`.
+  marquez-db:
+    image: postgres:15
+    profiles: ["lineage"]
+    environment:
+      POSTGRES_USER: marquez
+      POSTGRES_PASSWORD: marquez
+      POSTGRES_DB: marquez
+    volumes:
+      - marquez-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marquez -d marquez"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  marquez:
+    image: marquezproject/marquez:0.49.0
+    profiles: ["lineage"]
+    depends_on:
+      marquez-db:
+        condition: service_healthy
+    ports:
+      - "5000:5000"     # API OpenLineage
+      - "3000:3000"     # UI
+    environment:
+      POSTGRES_HOST: marquez-db
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: marquez
+      POSTGRES_PASSWORD: marquez
+
+  # --- Metadados operacionais (alertas, watermarks de freshness) ---
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: pulso
+      POSTGRES_PASSWORD: pulso
+      POSTGRES_DB: pulso
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+
+volumes:
+  minio-data:
+  marquez-db:
+  pg-data:

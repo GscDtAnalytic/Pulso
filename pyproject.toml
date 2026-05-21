@@ -1,0 +1,43 @@
+[project]
+name = "pulso"
+version = "0.1.0"
+description = "Pulso — analytics de mercado cripto em tempo real (Kafka + ksqlDB + Iceberg + governanca)."
+requires-python = ">=3.11"
+readme = "README.md"
+license = { text = "MIT" }
+dependencies = [
+    "pulso-domain",
+    "pulso-infra",
+    "pulso-ingest",
+    "pulso-storage",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+    "import-linter>=2.1",
+    "fastavro>=1.9",
+    "requests>=2.32",
+]
+
+[tool.uv.workspace]
+members = ["libs/*"]
+
+[tool.uv.sources]
+pulso-domain = { workspace = true }
+pulso-infra = { workspace = true }
+pulso-ingest = { workspace = true }
+pulso-storage = { workspace = true }
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "libs"]
+addopts = "-q"

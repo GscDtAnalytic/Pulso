@@ -1,0 +1,16 @@
+{
+  "type": "record",
+  "name": "Trade",
+  "namespace": "io.pulso.market",
+  "doc": "Um trade individual executado em uma exchange. Evento imutável (append-only). Fonte da verdade do pipeline.",
+  "fields": [
+    { "name": "trade_id", "type": "string", "doc": "ID do trade na exchange. Chave de deduplicacao/idempotencia no sink." },
+    { "name": "exchange", "type": "string", "doc": "Origem: 'binance' | 'coinbase'." },
+    { "name": "symbol", "type": "string", "doc": "Simbolo canonico (ex.: BTC-USD), resolvido pelo pulso-domain." },
+    { "name": "price", "type": "double", "doc": "Preco de execucao. Invariante de qualidade: price > 0." },
+    { "name": "quantity", "type": "double", "doc": "Quantidade negociada (base asset). Invariante: quantity > 0." },
+    { "name": "side", "type": { "type": "enum", "name": "Side", "symbols": ["BUY", "SELL", "UNKNOWN"] }, "doc": "Lado agressor.", "default": "UNKNOWN" },
+    { "name": "event_time", "type": { "type": "long", "logicalType": "timestamp-millis" }, "doc": "Quando o trade ocorreu na exchange (event time). Base de janelamento/watermark." },
+    { "name": "ingest_time", "type": { "type": "long", "logicalType": "timestamp-millis" }, "doc": "Quando o producer recebeu o evento (processing time). Skew = ingest - event." }
+  ]
+}

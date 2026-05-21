@@ -1,0 +1,20 @@
+{
+  "type": "record",
+  "name": "Candle",
+  "namespace": "io.pulso.market",
+  "doc": "Candle OHLCV agregado por janela de event time (tumbling). Produzido pelo ksqlDB. Invariante: low <= open,close <= high.",
+  "fields": [
+    { "name": "symbol", "type": "string", "doc": "Simbolo canonico." },
+    { "name": "interval", "type": { "type": "enum", "name": "Interval", "symbols": ["M1", "M5", "H1"] }, "doc": "Tamanho da janela: 1min, 5min, 1h." },
+    { "name": "window_start", "type": { "type": "long", "logicalType": "timestamp-millis" }, "doc": "Inicio da janela (event time)." },
+    { "name": "window_end", "type": { "type": "long", "logicalType": "timestamp-millis" }, "doc": "Fim da janela (event time)." },
+    { "name": "open", "type": "double", "doc": "Primeiro preco da janela (por event time)." },
+    { "name": "high", "type": "double", "doc": "Maior preco." },
+    { "name": "low", "type": "double", "doc": "Menor preco." },
+    { "name": "close", "type": "double", "doc": "Ultimo preco." },
+    { "name": "volume", "type": "double", "doc": "Soma das quantidades." },
+    { "name": "vwap", "type": "double", "doc": "Volume-weighted average price = sum(price*qty)/sum(qty)." },
+    { "name": "trade_count", "type": "long", "doc": "Numero de trades agregados na janela." },
+    { "name": "is_final", "type": "boolean", "doc": "true quando a janela fechou apos o grace period; false em emissoes intermediarias.", "default": false }
+  ]
+}

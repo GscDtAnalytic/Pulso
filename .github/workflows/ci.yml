@@ -1,0 +1,38 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv sync --all-extras --dev
+      - name: Lint (ruff)
+        run: uv run ruff check .
+      - name: Contratos de camada (import-linter)
+        run: uv run lint-imports
+      - name: Testes
+        run: uv run pytest
+
+  schema-compat:
+    # Enforcement de data contracts (shift-left). No CI validamos parseabilidade
+    # dos .avsc; a compatibilidade BACKWARD ao vivo contra o Schema Registry roda
+    # localmente via `make schema-check` (Redpanda do docker-compose). Subir um SR
+    # confiavel no runner sera adicionado quando o producer/SR estiver no compose de CI.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv sync --all-extras --dev
+      - name: Validar contratos Avro (parse)
+        run: uv run python tools/check_schema_compat.py --offline

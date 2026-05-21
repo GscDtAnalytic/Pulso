@@ -1,0 +1,16 @@
+{
+  "type": "record",
+  "name": "OrderBookDelta",
+  "namespace": "io.pulso.market",
+  "doc": "Atualizacao incremental (delta) do order book de uma exchange. A sequencia (update_id) permite detectar gaps apos reconexao.",
+  "fields": [
+    { "name": "exchange", "type": "string", "doc": "Origem: 'binance' | 'coinbase'." },
+    { "name": "symbol", "type": "string", "doc": "Simbolo canonico (ex.: BTC-USD)." },
+    { "name": "first_update_id", "type": "long", "doc": "Primeiro update_id deste delta. Usado para detectar gaps de sequencia." },
+    { "name": "final_update_id", "type": "long", "doc": "Ultimo update_id deste delta. Continuidade exige final_anterior + 1 == first_atual." },
+    { "name": "bids", "type": { "type": "array", "items": { "type": "record", "name": "PriceLevel", "fields": [ { "name": "price", "type": "double" }, { "name": "quantity", "type": "double", "doc": "0 = remover nivel." } ] } }, "doc": "Niveis de compra alterados." },
+    { "name": "asks", "type": { "type": "array", "items": "io.pulso.market.PriceLevel" }, "doc": "Niveis de venda alterados." },
+    { "name": "event_time", "type": { "type": "long", "logicalType": "timestamp-millis" }, "doc": "Event time da atualizacao na exchange." },
+    { "name": "ingest_time", "type": { "type": "long", "logicalType": "timestamp-millis" }, "doc": "Processing time no producer." }
+  ]
+}
