@@ -93,6 +93,28 @@ class Settings(BaseSettings):
     # Pushgateway Prometheus para o freshness-emitter standalone. Vazio = so imprime.
     pushgateway_url: str = ""
 
+    # --- Eixo B / LLM (Marco 7) ---
+    # Chave vazia desliga o LLM explainer (servico recusa startup). PULSO_ANTHROPIC_API_KEY.
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-haiku-4-5-20251001"
+    topic_anomaly: str = "events.anomaly"
+    anomaly_detector_metrics_port: int = 8003
+    llm_explainer_metrics_port: int = 8004
+    anomaly_consumer_group: str = "pulso-anomaly-detector"
+    llm_consumer_group: str = "pulso-llm-explainer"
+    # Rolling window de candles para calcular o baseline de deteccao.
+    anomaly_window_size: int = 20
+    anomaly_min_samples: int = 5  # minimo para evitar falsos positivos no warm-up
+    anomaly_volume_zscore_threshold: float = 3.0
+    anomaly_price_pct_threshold: float = 2.0  # variacao percentual (2 = 2%)
+    anomaly_volatility_zscore_threshold: float = 3.0
+    # Arquivo DuckDB que armazena anomalias + explicacoes. Separado do lake dbt.
+    anomaly_duckdb_path: str = "anomaly_explanations.duckdb"
+    # Feed RSS de noticias para contexto do LLM. Falha de fetch e silenciosa.
+    news_rss_url: str = "https://cryptopanic.com/news/rss/"
+    news_fetch_timeout: float = 5.0
+    news_max_headlines: int = 5
+
     # --- Ambiente ---
     env: str = "dev"  # dev | prod
     log_level: str = "INFO"

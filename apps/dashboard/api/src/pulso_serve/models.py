@@ -54,6 +54,25 @@ class DailyStat(BaseModel):
     candle_count: int
 
 
+class AnomalyExplanation(BaseModel):
+    """Anomalia de mercado com explicacao LLM — uma linha do `anomaly_explanations`."""
+
+    anomaly_id: str
+    symbol: str
+    detected_at: datetime
+    anomaly_type: str
+    severity: float | None = None
+    current_value: float | None = None
+    baseline_value: float | None = None
+    candle_window_start: datetime | None = None
+    candle_interval: str | None = None
+    explanation: str | None = None
+    key_factors: list[str] = []
+    news_headlines: list[str] = []
+    model_used: str | None = None
+    explained_at: datetime | None = None
+
+
 class LiveCandle(BaseModel):
     """Estado parcial da janela ABERTA — vem de pull query no ksqlDB, nao do lake.
 

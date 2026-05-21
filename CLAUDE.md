@@ -71,8 +71,18 @@ distribution ✅ schema ✅ lineage ✅. **Marco 6 (reprocessamento Kappa) concl
 — `is_caught_up` (puro, testável offline) + `ReplaySummary`; `RUNBOOK_KAPPA.md` — replay,
 backfill, migração ksqlDB, rollback via snapshot Iceberg, checklist operacional; `make replay`
 / `make backtest`. 14 testes offline cobrem `is_caught_up`, throughput, reproducibilidade
-do time-travel e idempotência do replay (cerne do Kappa). Próximo: Marco 7 (Eixo B LLM).
-Ver roadmap em `ARCHITECTURE_PROPOSAL.md`.
+do time-travel e idempotência do replay (cerne do Kappa). **Marco 7 (Eixo B LLM)
+concluído**: `services/anomaly_detector.py` — rolling window por símbolo, detecta
+PRICE_SPIKE/VOLUME_SPIKE/VOLATILITY_SPIKE (z-score + % change), publica em
+`events.anomaly` (Avro), /metrics :8003 (`make anomaly-detector`);
+`services/llm_explainer.py` — consome `events.anomaly`, busca notícias RSS (best-effort),
+chama Claude API (Haiku, **prompt caching** no system prompt — uma chamada por evento,
+nunca por trade), armazena em DuckDB `anomaly_explanations`, /metrics :8004 (`make
+llm-explainer`); `contracts/anomaly.avsc` (BACKWARD enforçado em CI);
+`pulso_serve.anomaly_store` compartilhado entre explainer e API; API `GET /api/anomalies`
+(filter por symbol, 503 se store ausente — fail-loud); 24 testes offline cobrem rolling
+window, detecção, AnomalyStore e funções puras; requer `PULSO_ANTHROPIC_API_KEY`.
+Próximo: Marco 8 (Cloud GCP). Ver roadmap em `ARCHITECTURE_PROPOSAL.md`.
 
 ## O que NÃO fazer
 

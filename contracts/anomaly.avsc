@@ -1,0 +1,58 @@
+{
+  "type": "record",
+  "name": "AnomalyEvent",
+  "namespace": "io.pulso.market",
+  "doc": "Evento de anomalia detectado pelo anomaly_detector no stream de candles. Publicado no topico events.anomaly; consumido pelo llm_explainer. Chave Kafka = symbol (mesmo padrao dos outros topicos). Campos novos com default — BACKWARD enforçado no CI.",
+  "fields": [
+    {
+      "name": "anomaly_id",
+      "type": "string",
+      "doc": "UUID v4 gerado pelo detector. Chave de idempotencia no anomaly_store."
+    },
+    {
+      "name": "symbol",
+      "type": "string",
+      "doc": "Simbolo canonico (ex.: BTC-USD). Redundante com a chave Kafka — incluido no value para consumers que nao usam a chave."
+    },
+    {
+      "name": "detected_at",
+      "type": { "type": "long", "logicalType": "timestamp-millis" },
+      "doc": "Timestamp de deteccao (processing time do detector)."
+    },
+    {
+      "name": "anomaly_type",
+      "type": {
+        "type": "enum",
+        "name": "AnomalyType",
+        "symbols": ["PRICE_SPIKE", "VOLUME_SPIKE", "VOLATILITY_SPIKE"],
+        "doc": "PRICE_SPIKE: variacao % de preco > threshold. VOLUME_SPIKE: z-score de volume > threshold. VOLATILITY_SPIKE: z-score do range (high-low) > threshold."
+      }
+    },
+    {
+      "name": "severity",
+      "type": "double",
+      "doc": "Magnitude da anomalia. PRICE_SPIKE: variacao % absoluta (0.03 = 3%). VOLUME_SPIKE/VOLATILITY_SPIKE: z-score."
+    },
+    {
+      "name": "current_value",
+      "type": "double",
+      "doc": "Valor observado na janela anomala (preco close, volume ou range)."
+    },
+    {
+      "name": "baseline_value",
+      "type": "double",
+      "doc": "Media do rolling window — referencia para o LLM e operador."
+    },
+    {
+      "name": "candle_window_start",
+      "type": { "type": "long", "logicalType": "timestamp-millis" },
+      "doc": "Inicio da janela do candle anomalo (event time)."
+    },
+    {
+      "name": "candle_interval",
+      "type": "string",
+      "default": "M1",
+      "doc": "Intervalo do candle: 'M1' | 'M5' | 'H1'."
+    }
+  ]
+}

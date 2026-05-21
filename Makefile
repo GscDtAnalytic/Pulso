@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 
-.PHONY: help up up-lineage down logs install lint test schema-check schema-check-offline check ksql-test ksql-apply sink iceberg-maintain lake-mirror dbt-seed-sync dbt-build dbt-test serve soda-check freshness-check replay backtest
+.PHONY: help up up-lineage down logs install lint test schema-check schema-check-offline check ksql-test ksql-apply sink iceberg-maintain lake-mirror dbt-seed-sync dbt-build dbt-test serve soda-check freshness-check replay backtest anomaly-detector llm-explainer
 
 help: ## Lista os targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -75,3 +75,9 @@ replay: ## Kappa replay: reprocessa trades.raw+candles desde o início (precisa 
 
 backtest: ## Lista snapshots Iceberg e prova reproducibilidade via time-travel
 	uv run python services/backtest.py --list-snapshots
+
+anomaly-detector: ## Sobe o detector de anomalias em candles.m1 (precisa de `make up`)
+	uv run python services/anomaly_detector.py
+
+llm-explainer: ## Sobe o explicador LLM (requer PULSO_ANTHROPIC_API_KEY e `make anomaly-detector`)
+	uv run python services/llm_explainer.py

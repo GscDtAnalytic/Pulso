@@ -20,7 +20,7 @@ from pulso_domain import load_symbols
 
 from pulso_serve import metrics
 from pulso_serve.ksql import KsqlUnavailable
-from pulso_serve.models import Candle, DailyStat, LiveCandle, Symbol
+from pulso_serve.models import AnomalyExplanation, Candle, DailyStat, LiveCandle, Symbol
 from pulso_serve.store import StoreUnavailable
 
 router = APIRouter()
@@ -104,6 +104,28 @@ def get_live_candle(
     if row is None:
         return Response(status_code=204)
     return LiveCandle(symbol=symbol, **row)
+
+
+@router.get("/api/anomalies", response_model=list[AnomalyExplanation], tags=["anomalies"])
+def get_anomalies(
+    request: Request,
+    symbol: str | None = Query(None, description="Filtrar por simbolo canonico (ex.: BTC-USD)."),
+    limit: int = Query(20, ge=1, le=500),
+) -> list:
+    """Anomalias recentes com explicacao LLM.
+
+    Requer `make anomaly-detector` + `make llm-explainer` rodando.
+    Retorna 503 se o store ainda nao foi inicializado (explainer nunca rodou).
+    """
+    if symbol is not None:
+        _require_symbol(symbol)
+    anomaly_store = getattr(request.app.state, "anomaly_store", None)
+    if anomaly_store is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Anomaly store nao disponivel — rode `make llm-explainer` primeiro.",
+        )
+    return anomaly_store.recent(symbol=symbol, limit=limit)
 
 
 @router.websocket("/ws/candles")

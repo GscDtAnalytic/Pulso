@@ -18,6 +18,7 @@ from prometheus_client import make_asgi_app
 from pulso_infra import get_settings
 
 from pulso_serve import metrics
+from pulso_serve.anomaly_store import AnomalyStore, build_anomaly_store
 from pulso_serve.ksql import KsqlClient
 from pulso_serve.live import CandleBroadcaster, CandleStream, ConnectionManager, kafka_candle_stream
 from pulso_serve.routes import router
@@ -32,6 +33,7 @@ def create_app(
     store: MarketStore,
     ksql: KsqlClient,
     stream: CandleStream,
+    anomaly_store: AnomalyStore | None = None,
 ) -> FastAPI:
     """Constrói o app FastAPI com deps injetadas — chamado por `main` e por testes."""
 
@@ -60,6 +62,7 @@ def create_app(
     app.state.store = store
     app.state.ksql = ksql
     app.state.manager = manager
+    app.state.anomaly_store = anomaly_store  # None se o Marco 7 nao esta rodando
 
     app.add_middleware(
         CORSMiddleware,
@@ -94,8 +97,15 @@ def main() -> None:
     store = build_store(settings)
     ksql = KsqlClient(settings.ksqldb_url)
     stream = kafka_candle_stream(settings)
+    # Anomaly store: opcional — ativo apenas se o arquivo DuckDB ja existe
+    # (criado pelo llm_explainer na primeira execucao).
+    import os
 
-    app = create_app(settings, store, ksql, stream)
+    anomaly_store: AnomalyStore | None = None
+    if os.path.exists(settings.anomaly_duckdb_path):
+        anomaly_store = build_anomaly_store(settings.anomaly_duckdb_path)
+
+    app = create_app(settings, store, ksql, stream, anomaly_store)
     uvicorn.run(
         app,
         host=settings.serve_host,
