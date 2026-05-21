@@ -77,7 +77,7 @@ Justificativa completa de cada escolha em [`ARCHITECTURE_PROPOSAL.md`](ARCHITECT
 | **0 — Fundação** | uv workspace, docker-compose, contratos Avro, CI compat check, seed de símbolos | ✅ Em andamento |
 | **1 — Ingestão** | producer WebSocket idempotente, gap detection, métricas | ✅ |
 | **2 — Stream processing** | ksqlDB OHLC/VWAP, event-time, grace + DLQ, exactly-once, pull queries, testes de topologia | ✅ |
-| **3 — Lakehouse** | sink idempotente → Iceberg, particionamento, time-travel | ⬜ |
+| **3 — Lakehouse** | sink idempotente → Iceberg bronze/silver, particionamento, manutenção, time-travel | ✅ |
 | **4 — Modelagem & serving** | dbt marts, FastAPI, dashboard React | ⬜ |
 | **5 — Governança** | data contracts, GE/Soda, lineage, observability, SLOs | ⬜ |
 | **6 — Reprocessamento (Kappa)** | replay, backfill, backtest reprodutível | ⬜ |
@@ -103,11 +103,15 @@ uv run python -m pulso_ingest --exchange binance # uma exchange só
 # Marco 2 — stream processing ksqlDB (candles OHLCV, volatilidade, DLQ)
 make ksql-test          # testes de topologia offline (ksql-test-runner, via docker)
 make ksql-apply         # aplica ksqldb/*.sql no ksqldb da stack (após `make up`)
+
+# Marco 3 — sink idempotente Kafka → Iceberg (lakehouse bronze/silver)
+make sink               # consome trades.raw + candles.* → Iceberg (MERGE idempotente)
+make iceberg-maintain   # manutenção: expire_snapshots
 ```
 
-Detalhes do stream processing (pull queries, decisões de desenho) em [`ksqldb/README.md`](ksqldb/README.md).
+Detalhes do stream processing em [`ksqldb/README.md`](ksqldb/README.md); do lakehouse (exactly-once, particionamento, time-travel) em [`libs/pulso-storage/README.md`](libs/pulso-storage/README.md).
 
-UIs locais: Redpanda Console `:8080` · MinIO `:9001` · Trino `:8085` · ksqlDB `:8088`. O producer expõe métricas Prometheus em `:8001/metrics` (throughput, skew event-time→ingest, gaps de order book, saúde da conexão). Lineage (Marquez `:3000`) sobe sob demanda no Marco 5: `docker compose --profile lineage up -d`.
+UIs locais: Redpanda Console `:8080` · MinIO `:9001` · Trino `:8085` · ksqlDB `:8088`. O producer expõe métricas Prometheus em `:8001/metrics` (throughput, skew event-time→ingest, gaps de order book, saúde da conexão) e o sink em `:8002/metrics` (consumer lag, freshness, duplicatas deduplicadas pelo MERGE). Lineage (Marquez `:3000`) sobe sob demanda no Marco 5: `docker compose --profile lineage up -d`.
 
 ---
 

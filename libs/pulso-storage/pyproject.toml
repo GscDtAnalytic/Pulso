@@ -6,10 +6,15 @@ requires-python = ">=3.11"
 dependencies = [
     "pulso-domain",
     "pulso-infra",
-    "pyiceberg[s3fs]>=0.7",
+    "pyiceberg[s3fs,sql-postgres,pyiceberg-core]>=0.11",
     "pyarrow>=17.0",
     "duckdb>=1.0",
+    "confluent-kafka[avro]>=2.5",
+    "prometheus-client>=0.20",
 ]
+
+[project.scripts]
+pulso-sink = "pulso_storage.app:main"
 
 [build-system]
 requires = ["hatchling"]

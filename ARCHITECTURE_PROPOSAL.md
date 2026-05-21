@@ -49,8 +49,8 @@ Segunda peça de portfólio depois do **Mapear-RN**. O Mapear provou batch madur
 
 ### Lakehouse e serving — Marcos 3-4
 - **Apache Iceberg** sobre object storage (MinIO local / **GCS** prod) — ACID, time-travel, schema evolution, multi-engine.
-- Sink Kafka→Iceberg (Kafka Connect Iceberg sink ou PyIceberg), **idempotente** (MERGE por `trade_id`).
-- Manutenção: `rewrite_data_files` + `expire_snapshots` agendados.
+- Sink Kafka→Iceberg via **PyIceberg** (mesma stack do producer, testável offline; Kafka Connect ficou como caminho de evolução para alta escala de escrita), **idempotente** — MERGE por chave de negócio + offset Kafka no snapshot.
+- Manutenção: `expire_snapshots` (PyIceberg) + `rewrite_data_files` (compactação via Trino) agendados.
 - **Trino** (histórico/BI) + **DuckDB** (dev) sobre o mesmo dado.
 - **dbt** (Trino/prod, DuckDB/dev) → `fct_trade`, `fct_candle`, `dim_symbol` + testes.
 - **FastAPI** (live via pull queries + histórico via Trino, push por WebSocket) + **React/Vite/TS**.
@@ -91,7 +91,7 @@ Critério de "feito" = roda no docker-compose + tem teste + tem o item de observ
 - **Marco 0 — Fundação** ✅: exchanges/símbolos (seed CSV), uv workspace + import-linter, docker-compose, contratos Avro + CI compat check, README + esta proposta.
 - **Marco 1 — Ingestão**: producer WebSocket idempotente, reconnect/circuit breaker/gap detection, métricas Prometheus.
 - **Marco 2 — Stream processing** ✅: ksqlDB OHLC/VWAP/vol, event-time, grace + DLQ, exactly_once_v2, pull queries, testes de topologia (`ksql-test-runner`). SQL versionado em `ksqldb/`; candles via `EMIT FINAL` (só janelas seladas no tópico); volatilidade e estado live de janela aberta via pull query.
-- **Marco 3 — Lakehouse**: sink idempotente → Iceberg bronze/silver, particionamento, manutenção, time-travel.
+- **Marco 3 — Lakehouse** ✅: sink idempotente PyIceberg → Iceberg `bronze.trades`/`silver.candles`, MERGE por chave de negócio + offset Kafka no snapshot (exactly-once), particionamento `day + symbol/interval`, `expire_snapshots`, time-travel. Catálogo SQL (Postgres) multi-engine. SQL/código versionado em `libs/pulso-storage/`; testes offline via catálogo sqlite (`pytest`).
 - **Marco 4 — Modelagem e serving**: dbt marts + testes, FastAPI, dashboard React.
 - **Marco 5 — Governança**: contracts completos no CI, GE/Soda, OpenLineage→Marquez, 5 pilares + freshness emitter + alertas + SLO de lag.
 - **Marco 6 — Reprocessamento (Kappa)**: replay com nova lógica, backfill, backtest reprodutível, runbook.
@@ -109,7 +109,6 @@ Pulso/
 │   ├── pulso-ingest/   # WebSocket clients, producer idempotente, gap detection (M1)
 │   └── pulso-storage/  # writers Iceberg, dedup/MERGE, time-travel (M3)
 ├── ksqldb/           # queries .sql versionadas (M2)
-├── connect/          # Kafka Connect Iceberg sink (M3)
 ├── dbt/              # staging → intermediate → marts (M4)
 ├── apps/dashboard/   # FastAPI + React/Vite (M4)
 ├── governance/       # GE/Soda, OpenLineage, SLOs (M5)

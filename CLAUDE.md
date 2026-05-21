@@ -36,15 +36,24 @@ Quebrar essa ordem faz `make lint` (import-linter) falhar. É proposital.
 
 ## Status
 
-Marco 2 (stream processing) concluído: SQL ksqlDB versionado em `ksqldb/` — candles OHLCV
-m1/m5/h1 por event-time com `EMIT FINAL` (tópico só carrega janelas seladas), volatilidade
-HOPPING e estado live de janela aberta via pull query, DLQ de late data em `trades.raw.dlq`.
-Testes de topologia offline via `ksql-test-runner` (`make ksql-test`); aplicar na stack:
-`make ksql-apply`. Ressalva: o `ksql-test-runner` standalone não dispara `EMIT FINAL` —
-ver `ksqldb/README.md`. Marco 1 (ingestão): producer WebSocket idempotente (Binance+Coinbase)
-→ `trades.raw`/`orderbook.delta`, reconnect + circuit breaker + gap detection, métricas
-Prometheus em `:8001/metrics` (`uv run python -m pulso_ingest`). Próximo: Marco 3 (sink
-idempotente → Iceberg). Ver roadmap em `ARCHITECTURE_PROPOSAL.md`.
+Marco 3 (lakehouse) concluído: sink idempotente PyIceberg em `libs/pulso-storage/` —
+consome `trades.raw`/`candles.m1/m5/h1` → Iceberg `bronze.trades`/`silver.candles`.
+Exactly-once por **MERGE na chave de negócio** (`Table.upsert`, insert-if-not-exists)
++ offset Kafka gravado no snapshot Iceberg (resume sem replay). Particionamento
+`day + symbol/interval`, `expire_snapshots`, time-travel. Catálogo SQL (Postgres em dev,
+sqlite nos testes). Rodar: `make sink` (`/metrics` em `:8002`); manutenção:
+`make iceberg-maintain`. Testes offline no `pytest`/`make check`. Ressalva: `upsert`
+varre as partições do batch; compactação `rewrite_data_files` fica para o Trino (M4) —
+ver `libs/pulso-storage/README.md`. Marco 2 (stream processing) concluído: SQL ksqlDB
+versionado em `ksqldb/` — candles OHLCV m1/m5/h1 por event-time com `EMIT FINAL` (tópico
+só carrega janelas seladas), volatilidade HOPPING e estado live de janela aberta via pull
+query, DLQ de late data em `trades.raw.dlq`. Testes de topologia offline via
+`ksql-test-runner` (`make ksql-test`); aplicar na stack: `make ksql-apply`. Ressalva: o
+`ksql-test-runner` standalone não dispara `EMIT FINAL` — ver `ksqldb/README.md`. Marco 1
+(ingestão): producer WebSocket idempotente (Binance+Coinbase) → `trades.raw`/`orderbook.delta`,
+reconnect + circuit breaker + gap detection, métricas Prometheus em `:8001/metrics`
+(`uv run python -m pulso_ingest`). Próximo: Marco 4 (modelagem dbt + serving FastAPI/React).
+Ver roadmap em `ARCHITECTURE_PROPOSAL.md`.
 
 ## O que NÃO fazer
 

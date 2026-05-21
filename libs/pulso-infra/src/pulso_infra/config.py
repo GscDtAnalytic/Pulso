@@ -33,6 +33,17 @@ class Settings(BaseSettings):
     topic_orderbook: str = "orderbook.delta"
     topic_dlq_suffix: str = ".dlq"
 
+    # --- Lakehouse / Iceberg (sink, Marco 3) ---
+    # Catalogo SQL do Iceberg. Dev/prod = Postgres do compose; testes = sqlite.
+    # PyIceberg usa URI SQLAlchemy; Trino le o mesmo catalogo via conector jdbc.
+    iceberg_catalog_uri: str = "postgresql+psycopg2://pulso:pulso@localhost:5432/pulso"
+    iceberg_catalog_name: str = "pulso"
+    # Grupo do consumer do sink; batch = quantos eventos por commit Iceberg.
+    sink_consumer_group: str = "pulso-storage-sink"
+    sink_batch_max_records: int = 500
+    sink_batch_max_seconds: float = 5.0
+    sink_metrics_port: int = 8002  # /metrics do sink (producer usa 8001)
+
     # --- Ingestao (producer, Marco 1) ---
     producer_client_id: str = "pulso-ingest"
     binance_ws_url: str = "wss://stream.binance.com:9443/stream"

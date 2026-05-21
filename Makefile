@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 
-.PHONY: help up down logs install lint test schema-check schema-check-offline check ksql-test ksql-apply
+.PHONY: help up down logs install lint test schema-check schema-check-offline check ksql-test ksql-apply sink iceberg-maintain
 
 help: ## Lista os targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -39,3 +39,9 @@ ksql-test: ## Testes de topologia ksqlDB (offline, via docker — precisa de doc
 
 ksql-apply: ## Aplica os ksqldb/*.sql no ksqldb da stack local (precisa de `make up`)
 	cat ksqldb/[0-9]*.sql | docker compose exec -T ksqldb ksql http://localhost:8088
+
+sink: ## Roda o sink idempotente Kafka -> Iceberg bronze/silver (precisa de `make up`)
+	uv run python -m pulso_storage
+
+iceberg-maintain: ## Manutencao Iceberg: expire_snapshots nas tabelas do lake
+	uv run python -m pulso_storage maintain
