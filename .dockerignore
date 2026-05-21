@@ -1,0 +1,39 @@
+# Ambiente virtual local — não copiar para o build
+.venv/
+**/.venv/
+
+# Artefatos de build Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache/
+**/*.egg-info/
+**/dist/
+**/build/
+
+# Dados locais e estado efêmero
+*.duckdb
+*.duckdb.wal
+minio-data/
+pg-data/
+
+# Credenciais e configuração local
+.env
+**/.env
+terraform.tfvars
+infra/terraform/.terraform/
+infra/terraform/terraform.tfstate*
+
+# Git
+.git/
+.gitignore
+
+# Documentação e CI (não precisam estar na imagem)
+*.md
+.github/
+memory/
+
+# Node (frontend não está no container de backend)
+apps/dashboard/web/node_modules/
+apps/dashboard/web/dist/

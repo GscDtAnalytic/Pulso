@@ -34,7 +34,9 @@ def build_catalog(
     warehouse = warehouse or settings.iceberg_warehouse
 
     props: dict[str, str] = {"uri": uri, "warehouse": warehouse}
-    # Warehouse S3 (MinIO/GCS) precisa da config de FileIO; `file://` (testes) nao.
+    # Warehouse S3 (MinIO dev) precisa de endpoint explícito + chave.
+    # Warehouse GCS (prod) usa Application Default Credentials — sem chave explícita.
+    # `file://` (testes) não precisa de FileIO remoto.
     if warehouse.startswith("s3://"):
         props.update(
             {
@@ -42,7 +44,13 @@ def build_catalog(
                 "s3.access-key-id": settings.s3_access_key,
                 "s3.secret-access-key": settings.s3_secret_key,
                 "s3.region": "us-east-1",
-                "s3.path-style-access": "true",  # MinIO nao faz virtual-host buckets
+                "s3.path-style-access": "true",  # MinIO não faz virtual-host buckets
             }
         )
+    elif warehouse.startswith("gs://"):
+        # GCS via ADC (Cloud Run SA ou `gcloud auth application-default login`).
+        # FsspecFileIO delega para gcsfs que resolve as credenciais automaticamente.
+        props["py-io-impl"] = "pyiceberg.io.fsspec.FsspecFileIO"
+        if settings.gcs_project_id:
+            props["gcs.project-id"] = settings.gcs_project_id
     return SqlCatalog(settings.iceberg_catalog_name, **props)

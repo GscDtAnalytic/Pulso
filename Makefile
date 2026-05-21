@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 
-.PHONY: help up up-lineage down logs install lint test schema-check schema-check-offline check ksql-test ksql-apply sink iceberg-maintain lake-mirror dbt-seed-sync dbt-build dbt-test serve soda-check freshness-check replay backtest anomaly-detector llm-explainer
+.PHONY: help up up-lineage down logs install lint test schema-check schema-check-offline check ksql-test ksql-apply sink iceberg-maintain lake-mirror dbt-seed-sync dbt-build dbt-test serve soda-check freshness-check replay backtest anomaly-detector llm-explainer tf-init tf-plan tf-apply tf-destroy docker-build docker-push
 
 help: ## Lista os targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -81,3 +81,24 @@ anomaly-detector: ## Sobe o detector de anomalias em candles.m1 (precisa de `mak
 
 llm-explainer: ## Sobe o explicador LLM (requer PULSO_ANTHROPIC_API_KEY e `make anomaly-detector`)
 	uv run python services/llm_explainer.py
+
+# --- Marco 8: Cloud GCP ---
+
+tf-init: ## Inicializa o Terraform (infra/terraform/)
+	cd infra/terraform && terraform init
+
+tf-plan: ## Plan do Terraform (requer terraform.tfvars em infra/terraform/)
+	cd infra/terraform && terraform plan -var-file=terraform.tfvars
+
+tf-apply: ## Aplica o Terraform
+	cd infra/terraform && terraform apply -var-file=terraform.tfvars
+
+tf-destroy: ## Destroi os recursos Terraform (CUIDADO: irreversível)
+	cd infra/terraform && terraform destroy -var-file=terraform.tfvars
+
+docker-build: ## Build da imagem Docker do Pulso
+	docker build -t pulso:latest .
+
+docker-push: ## Push da imagem para o Artifact Registry (requer PULSO_GCP_PROJECT e PULSO_GCP_REGION)
+	docker tag pulso:latest $(PULSO_GCP_REGION)-docker.pkg.dev/$(PULSO_GCP_PROJECT)/pulso/pulso:latest
+	docker push $(PULSO_GCP_REGION)-docker.pkg.dev/$(PULSO_GCP_PROJECT)/pulso/pulso:latest

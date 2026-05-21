@@ -93,22 +93,24 @@ def create_app(
 
 def main() -> None:
     """Entrypoint de produção: monta deps reais e sobe Uvicorn."""
+    import os
+
     settings = get_settings()
     store = build_store(settings)
     ksql = KsqlClient(settings.ksqldb_url)
     stream = kafka_candle_stream(settings)
     # Anomaly store: opcional — ativo apenas se o arquivo DuckDB ja existe
     # (criado pelo llm_explainer na primeira execucao).
-    import os
-
     anomaly_store: AnomalyStore | None = None
     if os.path.exists(settings.anomaly_duckdb_path):
         anomaly_store = build_anomaly_store(settings.anomaly_duckdb_path)
 
     app = create_app(settings, store, ksql, stream, anomaly_store)
+    # Cloud Run injeta $PORT; fallback para serve_port em dev.
+    port = int(os.environ.get("PORT", settings.serve_port))
     uvicorn.run(
         app,
         host=settings.serve_host,
-        port=settings.serve_port,
+        port=port,
         log_level=settings.log_level.lower(),
     )

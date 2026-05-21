@@ -1,0 +1,78 @@
+name: deploy
+
+# Dispara no push para main depois que o CI (ci.yml) já passou.
+on:
+  workflow_run:
+    workflows: [ci]
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  id-token: write   # Workload Identity Federation — sem chave de SA
+
+jobs:
+  build-push-deploy:
+    name: Build → Artifact Registry → Cloud Run
+    runs-on: ubuntu-latest
+    # Só executa se o CI passou
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    env:
+      REGION:     ${{ vars.GCP_REGION }}
+      PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      AR_URL:     ${{ vars.ARTIFACT_URL }}   # <region>-docker.pkg.dev/<project>/pulso
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Autenticação via Workload Identity Federation (sem chave JSON)
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account:            ${{ vars.DEPLOY_SA }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      # Configura Docker para usar o Artifact Registry como registry
+      - name: Configurar Docker → Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      # Build da imagem única (cmd sobrescrito por serviço no Cloud Run)
+      - name: Build da imagem
+        run: |
+          IMAGE="${{ env.AR_URL }}/pulso:${{ github.sha }}"
+          docker build -t "$IMAGE" -t "${{ env.AR_URL }}/pulso:latest" .
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Push da imagem
+        run: |
+          docker push "${{ env.AR_URL }}/pulso:${{ github.sha }}"
+          docker push "${{ env.AR_URL }}/pulso:latest"
+
+      # Atualiza todos os serviços Cloud Run para a nova imagem
+      - name: Deploy → Cloud Run
+        run: |
+          SERVICES=(
+            pulso-ingest
+            pulso-sink
+            pulso-anomaly-detector
+            pulso-llm-explainer
+            pulso-serve
+          )
+          for svc in "${SERVICES[@]}"; do
+            echo "→ Deployando $svc"
+            gcloud run services update "$svc" \
+              --image        "${{ env.IMAGE }}" \
+              --region       "${{ env.REGION }}" \
+              --project      "${{ env.PROJECT_ID }}" \
+              --quiet
+          done
+
+      - name: URL do pulso-serve
+        run: |
+          gcloud run services describe pulso-serve \
+            --region  "${{ env.REGION }}" \
+            --project "${{ env.PROJECT_ID }}" \
+            --format  "value(status.url)"

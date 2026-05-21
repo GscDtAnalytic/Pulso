@@ -1,0 +1,15 @@
+# Copie para terraform.tfvars e preencha os valores reais.
+# Nunca comite terraform.tfvars (está no .gitignore).
+
+project_id       = "seu-projeto-gcp"
+region           = "us-central1"
+environment      = "prod"
+lake_bucket_name = "pulso-lakehouse"
+image_tag        = "latest"
+
+# Redpanda Cloud (seed broker) ou self-hosted
+kafka_bootstrap     = "seed-xxxxxxxxxxxx.any.us-east1.cloud.redpanda.com:9092"
+schema_registry_url = "https://schema-registry-xxxx.any.us-east1.cloud.redpanda.com"
+
+# Chave Anthropic para o LLM explainer (Marco 7)
+anthropic_api_key = "sk-ant-..."

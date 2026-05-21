@@ -115,6 +115,11 @@ class Settings(BaseSettings):
     news_fetch_timeout: float = 5.0
     news_max_headlines: int = 5
 
+    # --- Cloud GCP (Marco 8) ---
+    # Em prod (Cloud Run), o warehouse usa gs:// e ADC resolve as credenciais.
+    # gcs_project_id é opcional quando rodando com uma service account no GCP.
+    gcs_project_id: str = ""
+
     # --- Ambiente ---
     env: str = "dev"  # dev | prod
     log_level: str = "INFO"

@@ -6,7 +6,7 @@ requires-python = ">=3.11"
 dependencies = [
     "pulso-domain",
     "pulso-infra",
-    "pyiceberg[s3fs,sql-postgres,pyiceberg-core]>=0.11",
+    "pyiceberg[s3fs,gcsfs,sql-postgres,pyiceberg-core]>=0.11",
     "pyarrow>=17.0",
     "duckdb>=1.0",
     "confluent-kafka[avro]>=2.5",

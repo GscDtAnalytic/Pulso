@@ -82,7 +82,16 @@ llm-explainer`); `contracts/anomaly.avsc` (BACKWARD enforçado em CI);
 `pulso_serve.anomaly_store` compartilhado entre explainer e API; API `GET /api/anomalies`
 (filter por symbol, 503 se store ausente — fail-loud); 24 testes offline cobrem rolling
 window, detecção, AnomalyStore e funções puras; requer `PULSO_ANTHROPIC_API_KEY`.
-Próximo: Marco 8 (Cloud GCP). Ver roadmap em `ARCHITECTURE_PROPOSAL.md`.
+**Marco 8 (Cloud GCP) concluído**: Terraform em `infra/terraform/` — GCS (lakehouse Iceberg +
+bucket anomaly-db montado via GCS volume no Cloud Run v2), Artifact Registry, Cloud SQL Postgres
+(catálogo JDBC Iceberg compartilhado com Trino), Secret Manager, IAM service accounts por serviço,
+Workload Identity Federation para GitHub Actions (sem chave JSON); 5 Cloud Run v2 services
+(`pulso-ingest`, `pulso-sink`, `pulso-anomaly-detector`, `pulso-llm-explainer`, `pulso-serve`);
+`Dockerfile` multi-stage uv workspace (imagem única, CMD sobrescrito por serviço no Cloud Run);
+`.github/workflows/deploy.yml` (dispara após ci.yml, build+push AR+update Cloud Run via gcloud);
+`infra/COST_ANALYSIS.md` (~$40/mês); `pyiceberg[gcs]` + `gs://` branch no `catalog.py` (ADC);
+`PORT` env var no `pulso-serve`; `make tf-init | tf-plan | tf-apply | docker-build | docker-push`.
+Ver `infra/terraform/README.md`. **Projeto completo — todos os marcos entregues.**
 
 ## O que NÃO fazer
 
