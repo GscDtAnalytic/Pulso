@@ -10,6 +10,7 @@ dependencies = [
     "pulso-infra",
     "pulso-ingest",
     "pulso-storage",
+    "pulso-serve",
 ]
 
 [dependency-groups]
@@ -20,16 +21,22 @@ dev = [
     "import-linter>=2.1",
     "fastavro>=1.9",
     "requests>=2.32",
+    "dbt-core>=1.8",
+    "dbt-duckdb>=1.8",
+    "httpx>=0.27",
+    "pytest-asyncio>=0.24",
+    "anyio>=4.0",
 ]
 
 [tool.uv.workspace]
-members = ["libs/*"]
+members = ["libs/*", "apps/dashboard/api"]
 
 [tool.uv.sources]
 pulso-domain = { workspace = true }
 pulso-infra = { workspace = true }
 pulso-ingest = { workspace = true }
 pulso-storage = { workspace = true }
+pulso-serve = { workspace = true }
 
 [tool.ruff]
 line-length = 100
@@ -41,3 +48,4 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 [tool.pytest.ini_options]
 testpaths = ["tests", "libs"]
 addopts = "-q"
+asyncio_mode = "auto"

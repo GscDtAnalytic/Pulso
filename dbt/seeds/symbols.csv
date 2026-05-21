@@ -1,0 +1,6 @@
+canonical,base,quote,binance_symbol,coinbase_symbol,active
+BTC-USD,BTC,USD,BTCUSDT,BTC-USD,true
+ETH-USD,ETH,USD,ETHUSDT,ETH-USD,true
+SOL-USD,SOL,USD,SOLUSDT,SOL-USD,true
+XRP-USD,XRP,USD,XRPUSDT,XRP-USD,true
+DOGE-USD,DOGE,USD,DOGEUSDT,DOGE-USD,true

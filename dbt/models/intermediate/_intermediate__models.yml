@@ -1,0 +1,7 @@
+version: 2
+
+models:
+  - name: int_market__candles_enriched
+    description: >
+      Candles selados + metricas derivadas (range, corpo, direcao, retorno %).
+      Ephemeral — base comum de fct_candle e fct_symbol_daily.

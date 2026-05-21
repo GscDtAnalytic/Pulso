@@ -58,6 +58,24 @@ class Settings(BaseSettings):
     # passam de 1 MiB; o default da lib (1 MiB) derruba a conexao com 1009.
     ws_max_message_bytes: int = 16 * 1024 * 1024
 
+    # --- Serving (FastAPI + dbt, Marco 4) ---
+    # Backend de historico servido pela API: as marts dbt vivem ou no DuckDB de dev
+    # (mesmo arquivo que o `dbt build` materializa) ou no Trino de prod — mesma SQL.
+    serve_host: str = "0.0.0.0"
+    serve_port: int = 8000  # API HTTP/WebSocket; /metrics no mesmo app (producer=8001, sink=8002).
+    serve_history_backend: str = "duckdb"  # duckdb (dev) | trino (prod)
+    serve_candle_topic: str = "candles.m1"  # topico que o push WebSocket retransmite
+    # Catalogo/schema das marts dbt. DuckDB: catalogo = stem do arquivo .duckdb.
+    dbt_duckdb_path: str = "dbt/pulso_lake.duckdb"
+    dbt_lake_catalog: str = "pulso_lake"
+    dbt_marts_schema: str = "analytics"
+    # ksqlDB (estado live de janela aberta via pull query — ver ksqldb/README.md).
+    ksqldb_url: str = "http://localhost:8088"
+    # Trino (historico em prod; conector iceberg sobre o mesmo catalogo do sink).
+    trino_host: str = "localhost"
+    trino_port: int = 8085
+    trino_user: str = "pulso"
+
     # --- Observabilidade ---
     metrics_port: int = 8001  # endpoint /metrics (Prometheus). Console=8080, Trino=8085.
 

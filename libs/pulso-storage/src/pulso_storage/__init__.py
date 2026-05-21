@@ -11,9 +11,11 @@ backtest reproduzivel.
 - `pipelines`   — rotas topico -> tabela.
 - `maintenance` — `expire_snapshots`.
 - `timetravel`  — leitura de snapshots passados (backtest reproduzivel).
+- `duckdb_mirror` — espelho Iceberg -> DuckDB para o dbt de dev (Marco 4).
 """
 
 from pulso_storage.catalog import build_catalog
+from pulso_storage.duckdb_mirror import mirror_to_duckdb
 from pulso_storage.sink import IcebergSink, WriteResult, read_committed_offsets
 from pulso_storage.tables import CANDLES, TRADES, TableSpec, ensure_table
 
@@ -25,5 +27,6 @@ __all__ = [
     "WriteResult",
     "build_catalog",
     "ensure_table",
+    "mirror_to_duckdb",
     "read_committed_offsets",
 ]

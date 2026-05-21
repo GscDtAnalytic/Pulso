@@ -1,10 +1,11 @@
 """Orquestrador do lakehouse (Marco 3).
 
-Dois modos:
+Modos:
 
     uv run python -m pulso_storage              # roda o sink (trades + candles)
     uv run python -m pulso_storage --pipeline trades
     uv run python -m pulso_storage maintain     # expire_snapshots nas tabelas
+    uv run python -m pulso_storage mirror       # espelha o lake num .duckdb (dbt dev)
 
 No modo sink, cada pipeline roda em sua thread (consumer Kafka e bloqueante): cada
 uma tem seu catalogo, sink e consumer. SIGINT seta o stop event compartilhado e
@@ -23,6 +24,7 @@ from pulso_infra import Settings, get_settings, setup_logging, start_metrics_ser
 
 from pulso_storage.catalog import build_catalog
 from pulso_storage.consumer import BatchingConsumer
+from pulso_storage.duckdb_mirror import mirror_to_duckdb
 from pulso_storage.maintenance import expire_snapshots
 from pulso_storage.pipelines import Pipeline, build_pipelines
 from pulso_storage.sink import IcebergSink, read_committed_offsets
@@ -120,6 +122,8 @@ def main() -> None:
     )
     maintain = sub.add_parser("maintain", help="Manutencao: expire_snapshots.")
     maintain.add_argument("--retain-hours", type=float, default=168.0)
+    mirror = sub.add_parser("mirror", help="Espelha o lake num .duckdb (dbt dev).")
+    mirror.add_argument("--db", default=None, help="Arquivo .duckdb destino (default: settings).")
     args = parser.parse_args()
 
     settings = get_settings()
@@ -127,6 +131,8 @@ def main() -> None:
 
     if args.command == "maintain":
         expire_snapshots(build_catalog(settings), retain_hours=args.retain_hours)
+    elif args.command == "mirror":
+        mirror_to_duckdb(build_catalog(settings), args.db or settings.dbt_duckdb_path)
     else:
         run_sink(settings, args.pipeline)
 

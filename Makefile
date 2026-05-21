@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 
-.PHONY: help up down logs install lint test schema-check schema-check-offline check ksql-test ksql-apply sink iceberg-maintain
+.PHONY: help up down logs install lint test schema-check schema-check-offline check ksql-test ksql-apply sink iceberg-maintain lake-mirror dbt-seed-sync dbt-build dbt-test serve
 
 help: ## Lista os targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -45,3 +45,18 @@ sink: ## Roda o sink idempotente Kafka -> Iceberg bronze/silver (precisa de `mak
 
 iceberg-maintain: ## Manutencao Iceberg: expire_snapshots nas tabelas do lake
 	uv run python -m pulso_storage maintain
+
+lake-mirror: ## Espelha o Iceberg para .duckdb (bridge dbt dev)
+	uv run python -m pulso_storage mirror
+
+dbt-seed-sync: ## Copia o seed de dominio para dbt/seeds/symbols.csv
+	cp libs/pulso-domain/seeds/symbols.csv dbt/seeds/symbols.csv
+
+dbt-build: lake-mirror dbt-seed-sync ## Espelha o lake e roda dbt build (dev target)
+	uv run dbt build --project-dir dbt --profiles-dir dbt --target dev
+
+dbt-test: ## Roda apenas os testes dbt (sem re-build dos modelos)
+	uv run dbt test --project-dir dbt --profiles-dir dbt --target dev
+
+serve: ## Sobe a API de serving (historico+live+WebSocket) em :8000
+	uv run python -m pulso_serve

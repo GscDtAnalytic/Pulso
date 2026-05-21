@@ -78,7 +78,7 @@ Justificativa completa de cada escolha em [`ARCHITECTURE_PROPOSAL.md`](ARCHITECT
 | **1 — Ingestão** | producer WebSocket idempotente, gap detection, métricas | ✅ |
 | **2 — Stream processing** | ksqlDB OHLC/VWAP, event-time, grace + DLQ, exactly-once, pull queries, testes de topologia | ✅ |
 | **3 — Lakehouse** | sink idempotente → Iceberg bronze/silver, particionamento, manutenção, time-travel | ✅ |
-| **4 — Modelagem & serving** | dbt marts, FastAPI, dashboard React | ⬜ |
+| **4 — Modelagem & serving** | dbt marts, FastAPI, dashboard React | ✅ |
 | **5 — Governança** | data contracts, GE/Soda, lineage, observability, SLOs | ⬜ |
 | **6 — Reprocessamento (Kappa)** | replay, backfill, backtest reprodutível | ⬜ |
 | **7 — Eixo B (LLM)** | explicador de eventos anômalos (1 chamada/evento) | ⬜ |

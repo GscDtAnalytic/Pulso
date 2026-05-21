@@ -1,0 +1,48 @@
+version: 2
+
+models:
+  - name: stg_bronze__trades
+    description: "Trades brutos com limpeza leve (exchange normalizada, skew calculado)."
+    columns:
+      - name: trade_id
+        description: "ID do trade na exchange."
+        data_tests: [not_null]
+      - name: exchange
+        description: "Origem normalizada para minusculo."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ["binance", "coinbase"]
+      - name: symbol
+        description: "Simbolo canonico."
+        data_tests: [not_null]
+      - name: price
+        description: "Preco de execucao."
+        data_tests: [not_null]
+      - name: side
+        description: "Lado agressor."
+        data_tests:
+          - accepted_values:
+              values: ["BUY", "SELL", "UNKNOWN"]
+      - name: event_time
+        description: "Event time do trade."
+        data_tests: [not_null]
+
+  - name: stg_silver__candles
+    description: "Candles OHLCV selados, tipados e renomeados (open->open_price, ...)."
+    columns:
+      - name: symbol
+        data_tests: [not_null]
+      - name: interval
+        description: "Granularidade da janela."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ["M1", "M5", "H1"]
+      - name: window_start
+        data_tests: [not_null]
+      - name: is_final
+        description: "Sempre true — silver carrega so janelas seladas."
+        data_tests:
+          - accepted_values:
+              values: [true]

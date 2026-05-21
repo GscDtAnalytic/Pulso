@@ -13,7 +13,7 @@ Plataforma de analytics de mercado cripto em **tempo real**. Streaming-first. Le
 ## Arquitetura de camadas (import-linter enforça)
 
 ```
-pulso_ingest | pulso_storage   (topo — orquestram)
+pulso_ingest | pulso_storage | pulso_serve   (topo — orquestram)
         ▲
 pulso_infra                    (config, logging, retry, métricas)
         ▲
@@ -52,8 +52,13 @@ query, DLQ de late data em `trades.raw.dlq`. Testes de topologia offline via
 `ksql-test-runner` standalone não dispara `EMIT FINAL` — ver `ksqldb/README.md`. Marco 1
 (ingestão): producer WebSocket idempotente (Binance+Coinbase) → `trades.raw`/`orderbook.delta`,
 reconnect + circuit breaker + gap detection, métricas Prometheus em `:8001/metrics`
-(`uv run python -m pulso_ingest`). Próximo: Marco 4 (modelagem dbt + serving FastAPI/React).
-Ver roadmap em `ARCHITECTURE_PROPOSAL.md`.
+(`uv run python -m pulso_ingest`). **Marco 4 (modelagem dbt + serving) concluído**: dbt com
+targets DuckDB (dev) e Trino (prod) — modelos `stg_*`, `int_*`, `fct_*`, `dim_*` em `dbt/`;
+espelho Iceberg→DuckDB via `make lake-mirror` / `python -m pulso_storage mirror`; API FastAPI
+em `apps/dashboard/api/` — histórico (`/api/candles`), estado live (`/api/candles/live` pull
+query ksqlDB), push WebSocket (`/ws/candles`), `/metrics` Prometheus — rodar: `make serve`
+(`:8000`). Dashboard React Vite+TS em `apps/dashboard/web/`. Próximo: Marco 5 (lineage
+OpenLineage/Marquez). Ver roadmap em `ARCHITECTURE_PROPOSAL.md`.
 
 ## O que NÃO fazer
 

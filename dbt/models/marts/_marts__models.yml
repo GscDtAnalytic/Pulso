@@ -1,0 +1,90 @@
+version: 2
+
+models:
+  - name: dim_symbol
+    description: "Dimensao de simbolos negociados (do seed — fonte de verdade unica)."
+    columns:
+      - name: symbol
+        description: "Simbolo canonico. Chave de negocio."
+        data_tests: [not_null, unique]
+      - name: base_asset
+        data_tests: [not_null]
+      - name: quote_asset
+        data_tests: [not_null]
+      - name: is_active
+        data_tests:
+          - accepted_values:
+              values: [true, false]
+
+  - name: fct_trade
+    description: "Fato de trades. Grao = um trade por (exchange, symbol, trade_id)."
+    data_tests:
+      - unique_combination:
+          columns: ["exchange", "symbol", "trade_id"]
+    columns:
+      - name: trade_id
+        data_tests: [not_null]
+      - name: exchange
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ["binance", "coinbase"]
+      - name: symbol
+        description: "FK para dim_symbol."
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_symbol')
+              field: symbol
+      - name: price
+        data_tests: [not_null]
+      - name: notional
+        description: "price * quantity."
+        data_tests: [not_null]
+      - name: event_time
+        data_tests: [not_null]
+
+  - name: fct_candle
+    description: "Fato de candles OHLCV selados. Grao = (symbol, interval, window_start)."
+    data_tests:
+      - unique_combination:
+          columns: ["symbol", "interval", "window_start"]
+    columns:
+      - name: symbol
+        description: "FK para dim_symbol."
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_symbol')
+              field: symbol
+      - name: interval
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ["M1", "M5", "H1"]
+      - name: window_start
+        data_tests: [not_null]
+      - name: direction
+        data_tests:
+          - accepted_values:
+              values: ["BULLISH", "BEARISH"]
+      - name: trade_count
+        data_tests: [not_null]
+
+  - name: fct_symbol_daily
+    description: "Resumo diario por simbolo (rollup dos candles M1). Grao = (symbol, trade_date)."
+    data_tests:
+      - unique_combination:
+          columns: ["symbol", "trade_date"]
+    columns:
+      - name: symbol
+        description: "FK para dim_symbol."
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_symbol')
+              field: symbol
+      - name: trade_date
+        data_tests: [not_null]
+      - name: volume
+        data_tests: [not_null]

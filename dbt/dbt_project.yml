@@ -1,0 +1,39 @@
+name: pulso
+version: "0.1.0"
+config-version: 2
+profile: pulso
+
+# Convencoes de nome (CLAUDE.md): stg_<fonte>__<entidade>, int_<dominio>__<desc>,
+# fct_<fato> / dim_<dim>. Dois targets: DuckDB (dev) e Trino (prod) — mesma SQL.
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages", "logs"]
+
+require-dbt-version: [">=1.8.0", "<2.0.0"]
+
+# `lake_catalog` aponta as *sources* para onde as tabelas Iceberg estao visiveis:
+#   dev  — DuckDB: catalogo = stem do arquivo .duckdb espelhado (pulso_lake).
+#   prod — Trino : catalogo do conector iceberg.
+# Override em prod: `dbt build --target prod --vars '{lake_catalog: iceberg}'`.
+vars:
+  lake_catalog: pulso_lake
+
+# Tudo (seed + staging + marts) materializa no schema do target (`analytics`).
+# Staging sao views; marts sao tabelas — o prefixo do nome ja diz a camada.
+models:
+  pulso:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: ephemeral
+    marts:
+      +materialized: table
+
+seeds:
+  pulso:
+    symbols:
+      +column_types:
+        active: boolean

@@ -4,14 +4,15 @@ root_packages =
     pulso_infra
     pulso_ingest
     pulso_storage
+    pulso_serve
 
 [importlinter:contract:layers]
-name = Camadas do Pulso (domain <- infra <- {ingest, storage})
+name = Camadas do Pulso (domain <- infra <- {ingest, storage, serve})
 type = layers
 layers =
-    pulso_ingest | pulso_storage
+    pulso_ingest | pulso_storage | pulso_serve
     pulso_infra
     pulso_domain
 
-; domain nao depende de ninguem; infra so de domain; ingest/storage no topo.
+; domain nao depende de ninguem; infra so de domain; ingest/storage/serve no topo.
 ; Sem este contrato, a estrutura degrada em semanas (licao do Mapear-RN).

@@ -1,0 +1,43 @@
+version: 2
+
+# Sources = as tabelas Iceberg do lakehouse (Marco 3). O dbt nao as cria nem as
+# escreve — sao a fronteira de entrada. `database` resolve por target (var
+# `lake_catalog`): em dev, o catalogo DuckDB espelhado; em prod, o conector Trino.
+sources:
+  - name: bronze
+    description: "Camada bronze do lakehouse — eventos brutos imutaveis."
+    database: "{{ var('lake_catalog') }}"
+    schema: bronze
+    tables:
+      - name: trades
+        description: >
+          Trades individuais, copia fiel de `trades.raw` (contracts/trade.avsc).
+          Fonte da verdade do pipeline; append-only.
+        columns:
+          - name: trade_id
+            description: "ID do trade na exchange — local a (exchange, symbol)."
+          - name: exchange
+            description: "Origem: binance | coinbase."
+          - name: symbol
+            description: "Simbolo canonico (ex.: BTC-USD)."
+          - name: price
+            description: "Preco de execucao. Invariante de qualidade: > 0."
+          - name: event_time
+            description: "Quando o trade ocorreu na exchange (event time)."
+
+  - name: silver
+    description: "Camada silver — candles OHLCV selados pelo ksqlDB."
+    database: "{{ var('lake_catalog') }}"
+    schema: silver
+    tables:
+      - name: candles
+        description: >
+          Candles OHLCV por janela de event-time (contracts/candle.avsc + symbol).
+          So janelas seladas (is_final = true). Invariante: low <= open,close <= high.
+        columns:
+          - name: symbol
+            description: "Simbolo canonico."
+          - name: interval
+            description: "Granularidade da janela: M1 | M5 | H1."
+          - name: window_start
+            description: "Inicio da janela (event time)."

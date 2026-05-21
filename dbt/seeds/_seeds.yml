@@ -1,0 +1,25 @@
+version: 2
+
+seeds:
+  - name: symbols
+    description: >
+      Copia fiel de `libs/pulso-domain/seeds/symbols.csv` — a fonte de verdade
+      unica de simbolos/exchanges (CLAUDE.md, principio #5). Mantida em sincronia
+      pelo teste `test_dbt_seed_matches_domain_seed` (fail-loud se divergir) e por
+      `make dbt-seed-sync`. Alimenta `dim_symbol`.
+    columns:
+      - name: canonical
+        description: "Simbolo canonico (ex.: BTC-USD). Chave de negocio."
+        data_tests: [not_null, unique]
+      - name: base
+        description: "Ativo base (BTC, ETH, ...)."
+        data_tests: [not_null]
+      - name: quote
+        description: "Ativo de cotacao (USD)."
+        data_tests: [not_null]
+      - name: active
+        description: "Se o simbolo esta em ingestao ativa."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [true, false]

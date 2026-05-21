@@ -1,0 +1,28 @@
+# Perfis dbt do Pulso — dois targets sobre o MESMO modelo (princ. multi-engine).
+#
+#   dev  — DuckDB. Le as sources do arquivo .duckdb espelhado do lake Iceberg
+#          (`make lake-mirror` / `python -m pulso_storage mirror`). Roda 100%
+#          offline, sem broker nem MinIO — e o target dos testes no pytest.
+#   prod — Trino. Le as tabelas Iceberg direto do conector `iceberg` (mesmo
+#          catalogo SQL do sink do Marco 3) e materializa as marts de volta no lake.
+#
+# Endpoints via env var (12-factor, prefixo PULSO_ — ver libs/pulso-infra/config.py).
+pulso:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('PULSO_DBT_DUCKDB_PATH', 'dbt/pulso_lake.duckdb') }}"
+      schema: analytics
+      threads: 4
+
+    prod:
+      type: trino
+      method: none
+      host: "{{ env_var('PULSO_TRINO_HOST', 'localhost') }}"
+      port: "{{ env_var('PULSO_TRINO_PORT', '8085') | as_number }}"
+      user: "{{ env_var('PULSO_TRINO_USER', 'pulso') }}"
+      catalog: iceberg
+      schema: analytics
+      http_scheme: http
+      threads: 4

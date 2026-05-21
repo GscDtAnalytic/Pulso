@@ -75,7 +75,9 @@ services:
     image: trinodb/trino:457
     ports:
       - "8085:8080"
-    depends_on: [minio]
+    depends_on: [minio, postgres]
+    volumes:
+      - ./infra/trino/catalog/iceberg.properties:/etc/trino/catalog/iceberg.properties:ro
 
   # --- Lineage (Marco 5) ---
   # Atras do profile `lineage`: NAO sobe no `make up` padrao. O Marquez exige
