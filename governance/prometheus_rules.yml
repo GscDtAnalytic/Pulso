@@ -1,0 +1,66 @@
+# Pulso — Prometheus alerting rules (Marco 5)
+#
+# Carregar no Prometheus via `rule_files:` no prometheus.yml.
+# Em dev, montar como volume em /etc/prometheus/rules/pulso_slo.yml.
+# Os alertas espelham os SLOs definidos em governance/slo.yml.
+#
+# Thresholds:
+#   freshness   > 60 s  por 5 min → dados parados (sink caiu ou Kafka vazio)
+#   consumer_lag > 10 k por 5 min → sink atrasado em relação ao broker
+#   serve p99   > 2 s   por 5 min → API lenta (DuckDB ou ksqlDB sobrecarregado)
+#   e2e latency > 5 s   por 5 min → latência event_time→lake além do SLO
+
+groups:
+  - name: pulso_slo
+    interval: 30s
+    rules:
+      - alert: PulsoFreshnessHigh
+        expr: pulso_sink_freshness_seconds{table="bronze.trades"} > 60
+        for: 5m
+        labels:
+          severity: warning
+          team: data-platform
+        annotations:
+          summary: "Lake desatualizado (freshness {{ $value | humanizeDuration }})"
+          description: >
+            bronze.trades está {{ $value | humanizeDuration }} atrás do event_time.
+            Verifique o sink (make sink) e o consumer lag do tópico trades.raw.
+
+      - alert: PulsoConsumerLagHigh
+        expr: pulso_sink_consumer_lag > 10000
+        for: 5m
+        labels:
+          severity: warning
+          team: data-platform
+        annotations:
+          summary: "Consumer lag alto ({{ $value }} mensagens atrás)"
+          description: >
+            O sink Iceberg está {{ $value }} mensagens atrás no tópico {{ $labels.topic }}
+            partição {{ $labels.partition }}. Verifique throughput e capacidade do sink.
+
+      - alert: PulsoServeLatencyHigh
+        expr: >
+          histogram_quantile(0.99,
+            rate(pulso_serve_http_request_seconds_bucket[5m])
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          team: data-platform
+        annotations:
+          summary: "API p99 acima de 2 s"
+          description: >
+            p99 da latência HTTP está {{ $value | humanizeDuration }}.
+            Rota {{ $labels.route }} pode estar sobrecarregada.
+
+      - alert: PulsoE2ELatencyHigh
+        expr: pulso_sink_freshness_seconds{table="silver.candles"} > 5
+        for: 5m
+        labels:
+          severity: critical
+          team: data-platform
+        annotations:
+          summary: "Latência e2e de candles além do SLO ({{ $value | humanizeDuration }})"
+          description: >
+            silver.candles está {{ $value | humanizeDuration }} atrás.
+            Verifica ksqlDB (make ksql-apply) e o pipeline de candles no sink.

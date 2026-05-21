@@ -57,8 +57,14 @@ targets DuckDB (dev) e Trino (prod) — modelos `stg_*`, `int_*`, `fct_*`, `dim_
 espelho Iceberg→DuckDB via `make lake-mirror` / `python -m pulso_storage mirror`; API FastAPI
 em `apps/dashboard/api/` — histórico (`/api/candles`), estado live (`/api/candles/live` pull
 query ksqlDB), push WebSocket (`/ws/candles`), `/metrics` Prometheus — rodar: `make serve`
-(`:8000`). Dashboard React Vite+TS em `apps/dashboard/web/`. Próximo: Marco 5 (lineage
-OpenLineage/Marquez). Ver roadmap em `ARCHITECTURE_PROPOSAL.md`.
+(`:8000`). Dashboard React Vite+TS em `apps/dashboard/web/`. **Marco 5 (governança)
+concluído**: OpenLineage→Marquez end-to-end (sink + producer; `make up-lineage`); Soda
+quality checks em `governance/soda/` — OHLC invariant, gap de minuto M1, volume (`make
+soda-check`); SLO YAML + Prometheus alerting rules em `governance/`; freshness emitter
+standalone em `services/freshness_emitter.py` (`make freshness-check`; exit 1 se SLO
+violado); CI `governance-check` valida YAML offline. 5 pilares: freshness ✅ volume ✅
+distribution ✅ schema ✅ lineage ✅. Próximo: Marco 6 (reprocessamento Kappa).
+Ver roadmap em `ARCHITECTURE_PROPOSAL.md`.
 
 ## O que NÃO fazer
 

@@ -1,14 +1,17 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 
-.PHONY: help up down logs install lint test schema-check schema-check-offline check ksql-test ksql-apply sink iceberg-maintain lake-mirror dbt-seed-sync dbt-build dbt-test serve
+.PHONY: help up up-lineage down logs install lint test schema-check schema-check-offline check ksql-test ksql-apply sink iceberg-maintain lake-mirror dbt-seed-sync dbt-build dbt-test serve soda-check freshness-check
 
 help: ## Lista os targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 
-up: ## Sobe a stack local (Redpanda+ksqlDB+MinIO+Trino+Marquez+Postgres)
+up: ## Sobe a stack local (Redpanda+ksqlDB+MinIO+Trino+Postgres)
 	docker compose up -d
+
+up-lineage: ## Sobe stack + Marquez/OpenLineage (UI :3000, API :5000)
+	docker compose --profile lineage up -d
 
 down: ## Derruba a stack local
 	docker compose down
@@ -60,3 +63,9 @@ dbt-test: ## Roda apenas os testes dbt (sem re-build dos modelos)
 
 serve: ## Sobe a API de serving (historico+live+WebSocket) em :8000
 	uv run python -m pulso_serve
+
+soda-check: ## Checks de qualidade Soda contra o lake DuckDB (requer make dbt-build)
+	uv run soda scan -d pulso_dev -c governance/soda/datasource_dev.yml governance/soda/
+
+freshness-check: ## Verifica SLO de freshness do lake (exit 1 se violado)
+	uv run python services/freshness_emitter.py

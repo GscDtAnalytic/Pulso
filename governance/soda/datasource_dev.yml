@@ -1,0 +1,10 @@
+# Soda — datasource DuckDB para dev (Marco 5)
+#
+# Aponta para o espelho DuckDB gerado por `make lake-mirror` + `make dbt-build`.
+# Rodar antes do soda scan: make dbt-build
+#
+# Uso: uv run soda scan -d pulso_dev -c governance/soda/datasource_dev.yml governance/soda/
+
+data_source pulso_dev:
+  type: duckdb
+  path: dbt/pulso_lake.duckdb

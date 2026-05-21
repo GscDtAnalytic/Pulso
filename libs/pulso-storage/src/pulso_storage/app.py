@@ -20,7 +20,13 @@ import signal
 import threading
 
 from loguru import logger
-from pulso_infra import Settings, get_settings, setup_logging, start_metrics_server
+from pulso_infra import (
+    OpenLineageEmitter,
+    Settings,
+    get_settings,
+    setup_logging,
+    start_metrics_server,
+)
 
 from pulso_storage.catalog import build_catalog
 from pulso_storage.consumer import BatchingConsumer
@@ -36,13 +42,14 @@ def _run_pipeline(
     settings: Settings,
     stop_event: threading.Event,
     errors: list[tuple[str, BaseException]],
+    emitter: OpenLineageEmitter | None = None,
 ) -> None:
     """Loop de um pipeline: consome batches e faz MERGE no Iceberg ate o stop."""
     consumer: BatchingConsumer | None = None
     try:
         catalog = build_catalog(settings)
         table = ensure_table(catalog, pipeline.spec)
-        sink = IcebergSink(table, pipeline.spec)
+        sink = IcebergSink(table, pipeline.spec, emitter=emitter)
         consumer = BatchingConsumer(
             settings,
             pipeline.topics,
@@ -79,12 +86,13 @@ def run_sink(settings: Settings, pipeline_names: list[str] | None) -> None:
         settings.sink_metrics_port,
     )
 
+    emitter = OpenLineageEmitter.from_settings(settings)
     stop_event = threading.Event()
     errors: list[tuple[str, BaseException]] = []
     threads = [
         threading.Thread(
             target=_run_pipeline,
-            args=(p, settings, stop_event, errors),
+            args=(p, settings, stop_event, errors, emitter),
             name=f"sink-{p.name}",
         )
         for p in pipelines

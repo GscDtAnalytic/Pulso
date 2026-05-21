@@ -1,0 +1,32 @@
+# Soda quality checks — analytics.fct_trade (Marco 5)
+#
+# Pilar: Distribution + Volume + Freshness na camada mart.
+# Roda via: make soda-check (requer make dbt-build primeiro)
+#
+# Fail-loud (princípio #4): zero linhas onde N são esperadas é erro, não sucesso.
+
+checks for analytics.fct_trade:
+  - row_count >= 1:
+      name: "Pelo menos 1 trade no mart"
+
+  - missing_count(trade_id) = 0:
+      name: "trade_id nunca nulo"
+
+  - duplicate_count(trade_id) = 0:
+      name: "trade_id único por linha"
+
+  - min(price) > 0:
+      name: "Preço sempre positivo"
+
+  - min(quantity) > 0:
+      name: "Volume sempre positivo"
+
+  - min(notional) > 0:
+      name: "Nocional (price * qty) sempre positivo"
+
+  - invalid_count(exchange) = 0:
+      name: "Exchange deve ser binance ou coinbase"
+      valid values: [binance, coinbase]
+
+  - missing_count(event_time) = 0:
+      name: "event_time nunca nulo"

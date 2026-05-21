@@ -79,6 +79,15 @@ class Settings(BaseSettings):
     # --- Observabilidade ---
     metrics_port: int = 8001  # endpoint /metrics (Prometheus). Console=8080, Trino=8085.
 
+    # --- Governanca / Lineage (Marco 5) ---
+    # URL vazia desliga o OpenLineage (no-op). Em dev com `make up-lineage`: http://localhost:5000.
+    openlineage_url: str = ""
+    openlineage_namespace: str = "pulso"
+    # SLO de freshness: maximo de segundos entre o evento mais recente e agora.
+    freshness_slo_seconds: int = 60
+    # Pushgateway Prometheus para o freshness-emitter standalone. Vazio = so imprime.
+    pushgateway_url: str = ""
+
     # --- Ambiente ---
     env: str = "dev"  # dev | prod
     log_level: str = "INFO"

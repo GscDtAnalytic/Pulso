@@ -17,7 +17,7 @@ import contextlib
 
 from loguru import logger
 from pulso_domain import Exchange, active_symbols
-from pulso_infra import get_settings, setup_logging, start_metrics_server
+from pulso_infra import OpenLineageEmitter, get_settings, setup_logging, start_metrics_server
 
 from pulso_ingest.exchanges import BinanceClient, CoinbaseClient, run_client
 from pulso_ingest.producer import MarketDataProducer
@@ -40,6 +40,9 @@ async def run(exchanges: list[Exchange]) -> None:
         settings.metrics_port,
     )
 
+    emitter = OpenLineageEmitter.from_settings(settings)
+    run_id = emitter.emit_ingest_start("ingest-producer", settings.topic_trades)
+
     producer = MarketDataProducer(settings)
     clients = [_CLIENTS[ex](settings, symbols) for ex in exchanges]
     tasks = [asyncio.create_task(run_client(c, producer), name=str(c.exchange)) for c in clients]
@@ -54,6 +57,7 @@ async def run(exchanges: list[Exchange]) -> None:
         pending = producer.flush()
         if pending:
             logger.warning("{} mensagem(ns) nao confirmadas no flush final.", pending)
+        emitter.emit_ingest_complete("ingest-producer", settings.topic_trades, run_id, records=0)
 
 
 def main() -> None:

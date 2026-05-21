@@ -1,0 +1,39 @@
+# Pulso — SLO / SLI definitions (Marco 5)
+#
+# Cada SLO define:
+#   metric     : métrica Prometheus que representa o indicador
+#   threshold  : limite que, se ultrapassado, configura violação
+#   window     : janela de avaliação na query PromQL
+#   alert_name : nome do alerta em governance/prometheus_rules.yml
+
+slos:
+  freshness:
+    description: "Dados do lake devem ter ao máximo 60 s de atraso em relação ao event_time."
+    metric: pulso_sink_freshness_seconds
+    labels: '{table="bronze.trades"}'
+    threshold_seconds: 60
+    window: 5m
+    alert_name: PulsoFreshnessHigh
+
+  consumer_lag:
+    description: "Lag do consumer Iceberg não deve ultrapassar 10 000 mensagens por partição."
+    metric: pulso_sink_consumer_lag
+    threshold_records: 10000
+    window: 5m
+    alert_name: PulsoConsumerLagHigh
+
+  serve_latency_p99:
+    description: "p99 da latência HTTP da API de serving deve ficar abaixo de 2 s."
+    metric: pulso_serve_http_request_seconds
+    quantile: 0.99
+    threshold_seconds: 2.0
+    window: 5m
+    alert_name: PulsoServeLatencyHigh
+
+  e2e_latency:
+    description: "Latência end-to-end (event_time → servido) deve ficar abaixo de 5 s."
+    metric: pulso_sink_freshness_seconds
+    labels: '{table="silver.candles"}'
+    threshold_seconds: 5
+    window: 5m
+    alert_name: PulsoE2ELatencyHigh

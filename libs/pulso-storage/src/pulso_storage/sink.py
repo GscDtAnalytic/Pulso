@@ -28,6 +28,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 import pyarrow as pa
 from loguru import logger
@@ -36,6 +37,9 @@ from pyiceberg.table import Table
 
 from pulso_storage import metrics
 from pulso_storage.tables import TableSpec
+
+if TYPE_CHECKING:
+    from pulso_infra.lineage import OpenLineageEmitter
 
 # Prefixo das snapshot properties que carregam o offset Kafka commitado.
 # Uma chave por (topico, particao): `pulso.kafka.offset.<topic>.<partition>`.
@@ -90,10 +94,16 @@ def _dedup_keep_last(records: list[dict], keys: tuple[str, ...]) -> list[dict]:
 class IcebergSink:
     """Escreve batches numa tabela Iceberg de forma idempotente e atomica."""
 
-    def __init__(self, table: Table, spec: TableSpec) -> None:
+    def __init__(
+        self,
+        table: Table,
+        spec: TableSpec,
+        emitter: OpenLineageEmitter | None = None,
+    ) -> None:
         self._table = table
         self._spec = spec
         self._arrow_schema = schema_to_pyarrow(table.schema())
+        self._emitter = emitter
 
     @property
     def table(self) -> Table:
@@ -143,6 +153,15 @@ class IcebergSink:
             inserted,
             max(skipped, 0),
         )
+        if self._emitter is not None:
+            # offsets: {(topic, partition): next_offset} — extrair topics unicos
+            topic_list = ", ".join(sorted({topic for topic, _part in offsets}))
+            self._emitter.emit_sink_run(
+                job_name=f"sink-{self._spec.name}",
+                input_dataset=topic_list or self._spec.identifier,
+                output_dataset=self._spec.identifier,
+                records=inserted,
+            )
         return WriteResult(received=len(records), inserted=inserted, skipped=max(skipped, 0))
 
     def _observe_freshness(self, records: list[dict]) -> None:

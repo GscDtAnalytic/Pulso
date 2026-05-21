@@ -1,0 +1,48 @@
+# Soda quality checks — analytics.fct_candle (Marco 5)
+#
+# Pilar: Distribution + Volume; invariantes OHLC e detecção de gaps de minuto.
+# Roda via: make soda-check (requer make dbt-build primeiro)
+
+checks for analytics.fct_candle:
+  - row_count >= 1:
+      name: "Pelo menos 1 candle no mart"
+
+  - missing_count(symbol) = 0:
+      name: "symbol nunca nulo"
+
+  - missing_count(interval) = 0:
+      name: "interval nunca nulo"
+
+  - invalid_count(interval) = 0:
+      name: "interval deve ser M1, M5 ou H1"
+      valid values: [M1, M5, H1]
+
+  - min(trade_count) >= 1:
+      name: "Candle sempre tem pelo menos 1 trade"
+
+  - failed rows:
+      name: "Inconsistência OHLC (low ≤ open,close ≤ high)"
+      fail condition: >
+        low_price > open_price
+        OR low_price > close_price
+        OR high_price < open_price
+        OR high_price < close_price
+        OR high_price < low_price
+
+  - failed rows:
+      name: "Gap de minuto em candles M1 por símbolo"
+      fail query: |
+        SELECT symbol, window_start, prev_window_start,
+               DATEDIFF('minute', prev_window_start, window_start) AS gap_minutes
+        FROM (
+          SELECT
+            symbol,
+            window_start,
+            LAG(window_start) OVER (
+              PARTITION BY symbol ORDER BY window_start
+            ) AS prev_window_start
+          FROM analytics.fct_candle
+          WHERE interval = 'M1'
+        ) t
+        WHERE prev_window_start IS NOT NULL
+          AND DATEDIFF('minute', prev_window_start, window_start) > 1
