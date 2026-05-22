@@ -25,7 +25,7 @@ from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroDeserializer
 from confluent_kafka.serialization import MessageField, SerializationContext
 from loguru import logger
-from pulso_infra import Settings
+from pulso_infra import Settings, decode_key_utf8
 
 from pulso_storage import metrics
 
@@ -33,14 +33,9 @@ from pulso_storage import metrics
 DecodeFn = Callable[[str | None, dict], dict]
 # Decodifica a chave Kafka crua (bytes) -> symbol. O formato depende do pipeline:
 # `trades.raw` carrega o symbol como string simples; os tópicos de candle vêm de
-# TABLEs janeladas do ksqlDB, cuja chave é `symbol + window-start (8 bytes)`.
+# TABLEs janeladas do ksqlDB (`symbol + window-start`) — ver pulso_infra.kafka_keys.
 KeyDecodeFn = Callable[[bytes | None], str | None]
 Offsets = dict[tuple[str, int], int]
-
-
-def decode_key_utf8(raw: bytes | None) -> str | None:
-    """Chave Kafka como string UTF-8 simples (default — produtores do Marco 1)."""
-    return raw.decode("utf-8") if raw is not None else None
 
 
 class BatchingConsumer:

@@ -31,9 +31,9 @@ from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroDeserializer
 from confluent_kafka.serialization import MessageField, SerializationContext
 from loguru import logger
-from pulso_infra import Settings
+from pulso_infra import Settings, decode_key_utf8
 
-from pulso_storage.consumer import DecodeFn, KeyDecodeFn, decode_key_utf8
+from pulso_storage.consumer import DecodeFn, KeyDecodeFn
 
 # Offsets: (tópico, partição) -> próximo offset a consumir.
 Offsets = dict[tuple[str, int], int]

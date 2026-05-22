@@ -35,12 +35,11 @@ from confluent_kafka.schema_registry.avro import AvroDeserializer, AvroSerialize
 from confluent_kafka.serialization import (
     MessageField,
     SerializationContext,
-    StringDeserializer,
     StringSerializer,
 )
 from loguru import logger
 from prometheus_client import Counter, Gauge, start_http_server
-from pulso_infra import Settings, get_settings, setup_logging
+from pulso_infra import Settings, decode_ksql_windowed_key, get_settings, setup_logging
 from pulso_ingest.schemas import load_schema_str
 
 # ---------------------------------------------------------------------------
@@ -223,7 +222,6 @@ def run(settings: Settings | None = None) -> None:  # noqa: C901
     sr = SchemaRegistryClient(settings.schema_registry_config())
     candle_de = AvroDeserializer(sr)
     anomaly_ser = AvroSerializer(sr, load_schema_str("anomaly.avsc"))
-    key_de = StringDeserializer("utf_8")
     key_ser = StringSerializer("utf_8")
 
     consumer = Consumer(
@@ -268,7 +266,9 @@ def run(settings: Settings | None = None) -> None:  # noqa: C901
                     logger.error("Erro Kafka: {}", msg.error())
                 continue
 
-            symbol = key_de(msg.key()) if msg.key() else "UNKNOWN"
+            # candles.m1 vem de uma TABLE janelada do ksqlDB: a chave é
+            # `symbol + window-start (8 bytes)`, não uma string UTF-8 simples.
+            symbol = decode_ksql_windowed_key(msg.key()) or "UNKNOWN"
             candle = candle_de(msg.value(), SerializationContext(msg.topic(), MessageField.VALUE))
             if candle is None:
                 continue

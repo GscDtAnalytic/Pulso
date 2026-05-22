@@ -129,12 +129,11 @@ def test_candle_windowed_key_extracts_symbol():
     """
     import struct
 
-    from pulso_storage.consumer import decode_key_utf8
-    from pulso_storage.pipelines import _decode_windowed_symbol_key
+    from pulso_infra import decode_key_utf8, decode_ksql_windowed_key
 
     windowed = b"BTC-USD" + struct.pack(">q", 1779451200000)  # symbol + window-start
-    assert _decode_windowed_symbol_key(windowed) == "BTC-USD"
-    assert _decode_windowed_symbol_key(None) is None
+    assert decode_ksql_windowed_key(windowed) == "BTC-USD"
+    assert decode_ksql_windowed_key(None) is None
     # A chave inteira como UTF-8 (comportamento antigo) falharia:
     with pytest.raises(UnicodeDecodeError):
         windowed.decode("utf-8")
@@ -144,10 +143,9 @@ def test_candle_windowed_key_extracts_symbol():
 
 def test_candle_pipeline_uses_windowed_key_decoder():
     """O pipeline de candles tem que vir cabeado com o decode de chave janelada."""
-    from pulso_infra import get_settings
-    from pulso_storage.consumer import decode_key_utf8
-    from pulso_storage.pipelines import _decode_windowed_symbol_key, build_pipelines
+    from pulso_infra import decode_key_utf8, decode_ksql_windowed_key, get_settings
+    from pulso_storage.pipelines import build_pipelines
 
     pipelines = {p.name: p for p in build_pipelines(get_settings())}
-    assert pipelines["candles"].key_decode is _decode_windowed_symbol_key
+    assert pipelines["candles"].key_decode is decode_ksql_windowed_key
     assert pipelines["trades"].key_decode is decode_key_utf8
