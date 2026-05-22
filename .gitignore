@@ -13,6 +13,8 @@ uv.lock.bak
 
 # Ambiente / segredos
 .env
+.env.local
+*/.env.local
 infra/terraform/terraform.tfvars
 
 # Terraform — state contém segredos; .terraform/ é cache local

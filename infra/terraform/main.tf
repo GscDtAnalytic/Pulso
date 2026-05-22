@@ -24,6 +24,7 @@ resource "google_project_service" "apis" {
     "servicenetworking.googleapis.com",
     "billingbudgets.googleapis.com",
     "cloudresourcemanager.googleapis.com",
+    "pubsub.googleapis.com",
   ])
 
   project            = var.project_id
