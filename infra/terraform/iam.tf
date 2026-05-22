@@ -236,8 +236,8 @@ resource "google_iam_workload_identity_pool_provider" "github" {
     "attribute.repository" = "assertion.repository"
   }
 
-  # Substitua pelo slug real do repositório: "owner/repo"
-  attribute_condition = "attribute.repository == \"GscDataAnalytic/Pulso\""
+  # Slug real do repositório GitHub: "owner/repo"
+  attribute_condition = "attribute.repository == \"GscDtAnalytic/Pulso\""
 
   oidc {
     issuer_uri = "https://token.actions.githubusercontent.com"
@@ -249,6 +249,6 @@ resource "google_service_account_iam_binding" "deploy_wif" {
   role               = "roles/iam.workloadIdentityUser"
 
   members = [
-    "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/GscDataAnalytic/Pulso",
+    "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/GscDtAnalytic/Pulso",
   ]
 }
