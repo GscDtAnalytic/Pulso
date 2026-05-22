@@ -24,6 +24,7 @@ TESTS_DIR="$KSQLDIR/tests"
 IMAGE="${KSQLDB_IMAGE:-confluentinc/ksqldb-server:0.29.0}"
 
 work="$(mktemp -d)"
+chmod 777 "$work"   # container ksqldb roda como non-root; precisa de leitura no mount
 trap 'rm -rf "$work"' EXIT
 
 fail=0
