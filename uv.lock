@@ -2709,18 +2709,19 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "anthropic" },
+    { name = "dbt-core" },
+    { name = "dbt-duckdb" },
     { name = "pulso-domain" },
     { name = "pulso-infra" },
     { name = "pulso-ingest" },
     { name = "pulso-serve" },
     { name = "pulso-storage" },
+    { name = "soda-core-duckdb" },
 ]
 
 [package.dev-dependencies]
 dev = [
     { name = "anyio" },
-    { name = "dbt-core" },
-    { name = "dbt-duckdb" },
     { name = "fastavro" },
     { name = "httpx" },
     { name = "import-linter" },
@@ -2730,24 +2731,24 @@ dev = [
     { name = "pyyaml" },
     { name = "requests" },
     { name = "ruff" },
-    { name = "soda-core-duckdb" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "anthropic", specifier = ">=0.40" },
+    { name = "dbt-core", specifier = ">=1.8" },
+    { name = "dbt-duckdb", specifier = ">=1.8" },
     { name = "pulso-domain", editable = "libs/pulso-domain" },
     { name = "pulso-infra", editable = "libs/pulso-infra" },
     { name = "pulso-ingest", editable = "libs/pulso-ingest" },
     { name = "pulso-serve", editable = "apps/dashboard/api" },
     { name = "pulso-storage", editable = "libs/pulso-storage" },
+    { name = "soda-core-duckdb", specifier = ">=3.3" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "anyio", specifier = ">=4.0" },
-    { name = "dbt-core", specifier = ">=1.8" },
-    { name = "dbt-duckdb", specifier = ">=1.8" },
     { name = "fastavro", specifier = ">=1.9" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "import-linter", specifier = ">=2.1" },
@@ -2757,7 +2758,6 @@ dev = [
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "requests", specifier = ">=2.32" },
     { name = "ruff", specifier = ">=0.6" },
-    { name = "soda-core-duckdb", specifier = ">=3.3" },
 ]
 
 [[package]]

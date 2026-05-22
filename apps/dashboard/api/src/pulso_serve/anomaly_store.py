@@ -154,7 +154,9 @@ def pending_record(anomaly: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _millis_to_dt(ms: int | None) -> datetime | None:
+def _millis_to_dt(ms: int | datetime | None) -> datetime | None:
     if ms is None:
         return None
+    if isinstance(ms, datetime):
+        return ms if ms.tzinfo else ms.replace(tzinfo=UTC)
     return datetime.fromtimestamp(ms / 1000, tz=UTC)

@@ -494,6 +494,16 @@ resource "google_cloud_run_v2_service" "pulso_serve" {
       }
     }
 
+    # Espelho DuckDB com marts dbt (fct_candle/fct_symbol_daily) — read-only.
+    # Produzido pelo job pulso-lake-mirror; serve o endpoint /api/candles (histórico).
+    volumes {
+      name = "lake-mirror"
+      gcs {
+        bucket    = google_storage_bucket.lake_mirror.name
+        read_only = true
+      }
+    }
+
     # Sidecar de coleta de métricas → Managed Service for Prometheus.
     containers {
       name       = "collector"
@@ -525,6 +535,11 @@ resource "google_cloud_run_v2_service" "pulso_serve" {
         mount_path = "/data"
       }
 
+      volume_mounts {
+        name       = "lake-mirror"
+        mount_path = "/mnt/lake-mirror"
+      }
+
       dynamic "env" {
         for_each = local.common_env
         content {
@@ -536,6 +551,11 @@ resource "google_cloud_run_v2_service" "pulso_serve" {
       env {
         name  = "PULSO_ANOMALY_DUCKDB_PATH"
         value = "/data/anomaly_explanations.duckdb"
+      }
+
+      env {
+        name  = "PULSO_DBT_DUCKDB_PATH"
+        value = "/mnt/lake-mirror/pulso_lake.duckdb"
       }
 
       dynamic "env" {
@@ -575,6 +595,7 @@ resource "google_cloud_run_v2_service" "pulso_serve" {
     google_sql_database_instance.iceberg_catalog,
     google_storage_bucket.lake,
     google_storage_bucket.anomaly_db,
+    google_storage_bucket.lake_mirror,
   ]
 }
 

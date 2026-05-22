@@ -88,10 +88,14 @@ Formato de resposta (JSON puro, sem markdown):
 # ---------------------------------------------------------------------------
 
 
-def _fmt_ts(ms: int | None) -> str:
+def _fmt_ts(ms: int | datetime | None) -> str:
     if ms is None:
         return "N/A"
-    return datetime.fromtimestamp(ms / 1000, tz=UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
+    if isinstance(ms, datetime):
+        dt = ms if ms.tzinfo else ms.replace(tzinfo=UTC)
+    else:
+        dt = datetime.fromtimestamp(ms / 1000, tz=UTC)
+    return dt.strftime("%Y-%m-%d %H:%M:%S UTC")
 
 
 def build_prompt(anomaly: dict[str, Any], news: list[str]) -> str:
