@@ -6,8 +6,7 @@
 # explosion garantida. Cloud Run Job + Cloud Scheduler resolvem.
 #
 # Escopo: manutenção Iceberg (a que degrada o sistema com o tempo).
-# freshness é métrica viva (ver monitoring.tf); soda/lake-mirror
-# são bridges de dev e ficam fora do prod por desenho.
+# freshness é métrica viva (ver monitoring.tf); Soda em prod está em soda.tf.
 # ─────────────────────────────────────────────────────────────
 
 # SA que o Cloud Scheduler usa para disparar o job.

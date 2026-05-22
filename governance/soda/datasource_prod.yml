@@ -1,0 +1,9 @@
+# Soda — datasource DuckDB para o job de qualidade em produção.
+#
+# O Cloud Run Job (pulso-soda-check) espelha o Iceberg GCS → /tmp/pulso_lake.duckdb
+# via `python -m pulso_storage mirror`, depois roda `dbt build` e então este scan.
+# O path é fixo no container (ver infra/terraform/soda.tf).
+
+data_source pulso_prod:
+  type: duckdb
+  path: /tmp/pulso_lake.duckdb

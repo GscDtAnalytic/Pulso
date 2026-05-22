@@ -66,6 +66,26 @@ jobs:
             --registry http://localhost:18081 \
             --baseline /tmp/baseline
 
+  image-scan:
+    # Scan de vulnerabilidade da imagem Docker (supply chain).
+    # Trivy verifica HIGH/CRITICAL em OS packages e dependências Python.
+    # Roda em paralelo com os outros jobs de CI — não depende deles.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build da imagem (para scan)
+        run: docker build -t pulso:scan .
+
+      - name: Trivy — scan HIGH/CRITICAL
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: pulso:scan
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+
   governance-check:
     # Valida os artefatos de governanca (SLO YAML, Soda YAML, Prometheus rules)
     # sem necessidade de stack ao vivo. O `soda scan` real roda localmente pos
