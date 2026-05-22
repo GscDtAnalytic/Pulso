@@ -23,10 +23,6 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-# Caminho do dist/ compilado pelo Dockerfile (web-builder stage).
-# Em dev local sem build, o diretório não existe e o serving estático é omitido.
-_DIST = Path(__file__).parents[3] / "web" / "dist"
-
 from pulso_serve import metrics
 from pulso_serve.anomaly_store import AnomalyStore, build_anomaly_store
 from pulso_serve.ksql import KsqlClient
@@ -36,6 +32,10 @@ from pulso_serve.store import MarketStore, build_store
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
+
+# Caminho do dist/ compilado pelo Dockerfile (web-builder stage).
+# Em dev local sem build, o diretório não existe e o serving estático é omitido.
+_DIST = Path(__file__).parents[3] / "web" / "dist"
 
 
 def _client_ip(request: Request) -> str:

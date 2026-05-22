@@ -40,7 +40,11 @@ resource "google_secret_manager_secret" "anthropic_api_key" {
     rotation_period    = "7776000s" # 90 dias
     next_rotation_time = "2026-08-20T00:00:00Z"
   }
-  depends_on = [google_project_service.apis, google_pubsub_topic.secret_rotation]
+  depends_on = [
+    google_project_service.apis,
+    google_pubsub_topic.secret_rotation,
+    google_pubsub_topic_iam_member.secret_manager_publisher,
+  ]
 }
 
 # Gerado pelo Terraform; URI completo com host Cloud SQL unix socket.
@@ -159,7 +163,11 @@ resource "google_secret_manager_secret" "kafka_sasl_password" {
     rotation_period    = "7776000s" # 90 dias
     next_rotation_time = "2026-08-20T00:00:00Z"
   }
-  depends_on = [google_project_service.apis, google_pubsub_topic.secret_rotation]
+  depends_on = [
+    google_project_service.apis,
+    google_pubsub_topic.secret_rotation,
+    google_pubsub_topic_iam_member.secret_manager_publisher,
+  ]
 }
 
 resource "google_secret_manager_secret_version" "kafka_sasl_password" {
@@ -181,7 +189,11 @@ resource "google_secret_manager_secret" "db_password" {
     rotation_period    = "7776000s" # 90 dias
     next_rotation_time = "2026-08-20T00:00:00Z"
   }
-  depends_on = [google_project_service.apis, google_pubsub_topic.secret_rotation]
+  depends_on = [
+    google_project_service.apis,
+    google_pubsub_topic.secret_rotation,
+    google_pubsub_topic_iam_member.secret_manager_publisher,
+  ]
 }
 
 resource "google_secret_manager_secret_version" "db_password" {
