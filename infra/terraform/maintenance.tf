@@ -25,10 +25,6 @@ resource "google_cloud_run_v2_job" "iceberg_maintain" {
   location = var.region
 
   template {
-    annotations = {
-      "run.googleapis.com/cloudsql-instances" = local.cloud_sql_instance
-    }
-
     template {
       service_account = google_service_account.pulso_sink.email
       timeout         = "1800s" # 30 min — folga para compactar partições
@@ -42,10 +38,23 @@ resource "google_cloud_run_v2_job" "iceberg_maintain" {
         egress = "PRIVATE_RANGES_ONLY"
       }
 
+      # Cloud Run v2 Jobs conectam ao Cloud SQL via volume (anotação não é suportada em v2).
+      volumes {
+        name = "cloudsql"
+        cloud_sql_instance {
+          instances = [local.cloud_sql_instance]
+        }
+      }
+
       containers {
         image   = local.image
         command = ["python"]
         args    = ["-m", "pulso_storage", "maintain"]
+
+        volume_mounts {
+          name       = "cloudsql"
+          mount_path = "/cloudsql"
+        }
 
         resources {
           limits = {

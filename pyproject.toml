@@ -11,6 +11,7 @@ dependencies = [
     "pulso-ingest",
     "pulso-storage",
     "pulso-serve",
+    "anthropic>=0.40",
 ]
 
 [dependency-groups]
@@ -28,7 +29,6 @@ dev = [
     "anyio>=4.0",
     "soda-core-duckdb>=3.3",
     "pyyaml>=6.0",
-    "anthropic>=0.40",
 ]
 
 [tool.uv.workspace]

@@ -186,7 +186,13 @@ resource "google_compute_instance" "redpanda" {
 
     # Cluster config bootstrap: SASL ligado, 'pulso' como superuser.
     # Aplicado só na primeira formação do cluster; depois persiste no disco.
-    printf 'enable_sasl: true\nsuperusers:\n  - pulso\n' \
+    # kafka_enable_authorization: false — autenticação SASL continua exigida no
+    # listener externo, mas a *autorização* (ACLs) fica desligada. Necessário
+    # porque o listener interno loopback é 'authentication_method: none' (principal
+    # anônimo): com ACLs ligadas, clientes locais confiáveis (ksqlDB, criação de
+    # tópicos pelo rpk) seriam barrados. Há um único usuário (pulso, superuser),
+    # então ACLs não davam granularidade — só bloqueavam o loopback.
+    printf 'enable_sasl: true\nkafka_enable_authorization: false\nsuperusers:\n  - pulso\n' \
       | sudo tee /etc/redpanda/.bootstrap.yaml > /dev/null
 
     sudo rpk redpanda config set redpanda.data_directory "$DATA_MNT/data"
@@ -206,6 +212,15 @@ resource "google_compute_instance" "redpanda" {
       '[{name: internal, address: 127.0.0.1, port: 18081},{name: external, address: 0.0.0.0, port: 8081}]'
     sudo rpk redpanda config set schema_registry.schema_registry_api_tls \
       '[{name: external, enabled: true, cert_file: /etc/redpanda/certs/server.crt, key_file: /etc/redpanda/certs/server.key, truststore_file: /etc/redpanda/certs/ca.crt}]'
+
+    # Cliente Kafka interno do Schema Registry e do HTTP Proxy → listener loopback
+    # 'none'. Sem isto o SR conecta no listener default (SASL) sem credenciais e
+    # falha com 'illegal_sasl_state' ao ler/gravar o tópico interno '_schemas',
+    # quebrando registro de schema para ksqlDB e para o producer.
+    sudo rpk redpanda config set schema_registry_client.brokers \
+      '[{address: 127.0.0.1, port: 29092}]'
+    sudo rpk redpanda config set pandaproxy_client.brokers \
+      '[{address: 127.0.0.1, port: 29092}]'
 
     sudo systemctl enable redpanda
     sudo systemctl start redpanda

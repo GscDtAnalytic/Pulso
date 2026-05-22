@@ -1,6 +1,11 @@
 provider "google" {
   project = var.project_id
   region  = var.region
+
+  # Necessário para APIs que usam billing quota (ex: billingbudgets.googleapis.com)
+  # com Application Default Credentials de usuário.
+  user_project_override = true
+  billing_project       = var.project_id
 }
 
 # APIs necessárias
@@ -18,6 +23,7 @@ resource "google_project_service" "apis" {
     "cloudscheduler.googleapis.com",
     "servicenetworking.googleapis.com",
     "billingbudgets.googleapis.com",
+    "cloudresourcemanager.googleapis.com",
   ])
 
   project            = var.project_id

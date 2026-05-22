@@ -47,8 +47,10 @@ resource "google_secret_manager_secret" "iceberg_catalog_uri" {
 
 resource "google_secret_manager_secret_version" "iceberg_catalog_uri" {
   secret = google_secret_manager_secret.iceberg_catalog_uri.id
-  # Conexão via Cloud SQL Auth Proxy (unix socket montado no container Cloud Run).
-  secret_data = "postgresql+psycopg2://pulso:${random_password.db_password.result}@/pulso?host=/cloudsql/${local.cloud_sql_instance}"
+  # Conexão direta ao IP privado do Cloud SQL via VPC (egress PRIVATE_RANGES_ONLY).
+  # O Cloud SQL não tem IP público, então o Auth Proxy embutido do Cloud Run (que usa
+  # o caminho público) não cria o unix socket. Mesmo método TCP que o Marquez usa.
+  secret_data = "postgresql+psycopg2://pulso:${random_password.db_password.result}@${google_sql_database_instance.iceberg_catalog.private_ip_address}:5432/pulso"
 }
 
 resource "google_secret_manager_secret" "iceberg_warehouse" {

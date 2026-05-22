@@ -34,9 +34,10 @@ locals {
 # 1. pulso-ingest  — producer WebSocket → Kafka
 # ─────────────────────────────────────────────────────────────
 resource "google_cloud_run_v2_service" "pulso_ingest" {
-  name     = "pulso-ingest"
-  location = var.region
-  ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY" # sem tráfego externo; só health check
+  name                = "pulso-ingest"
+  location            = var.region
+  deletion_protection = false
+  ingress             = "INGRESS_TRAFFIC_INTERNAL_ONLY" # sem tráfego externo; só health check
 
   template {
     service_account = google_service_account.pulso_ingest.email
@@ -76,7 +77,7 @@ resource "google_cloud_run_v2_service" "pulso_ingest" {
 
       resources {
         limits = {
-          cpu    = "0.5"
+          cpu    = "1"
           memory = "512Mi"
         }
         cpu_idle = false # worker contínuo; CPU sempre alocada
@@ -138,17 +139,17 @@ resource "google_cloud_run_v2_service" "pulso_ingest" {
 # 2. pulso-sink  — Kafka → Iceberg (GCS)
 # ─────────────────────────────────────────────────────────────
 resource "google_cloud_run_v2_service" "pulso_sink" {
-  name     = "pulso-sink"
-  location = var.region
-  ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY"
+  name                = "pulso-sink"
+  location            = var.region
+  deletion_protection = false
+  ingress             = "INGRESS_TRAFFIC_INTERNAL_ONLY"
 
   template {
     service_account = google_service_account.pulso_sink.email
 
     annotations = {
-      "autoscaling.knative.dev/minScale"      = "1"
-      "autoscaling.knative.dev/maxScale"      = "1"
-      "run.googleapis.com/cloudsql-instances" = local.cloud_sql_instance
+      "autoscaling.knative.dev/minScale" = "1"
+      "autoscaling.knative.dev/maxScale" = "1"
     }
 
     vpc_access {
@@ -247,9 +248,10 @@ resource "google_cloud_run_v2_service" "pulso_sink" {
 # 3. pulso-anomaly-detector  — rolling window + z-score
 # ─────────────────────────────────────────────────────────────
 resource "google_cloud_run_v2_service" "pulso_anomaly" {
-  name     = "pulso-anomaly-detector"
-  location = var.region
-  ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY"
+  name                = "pulso-anomaly-detector"
+  location            = var.region
+  deletion_protection = false
+  ingress             = "INGRESS_TRAFFIC_INTERNAL_ONLY"
 
   template {
     service_account = google_service_account.pulso_anomaly.email
@@ -288,7 +290,7 @@ resource "google_cloud_run_v2_service" "pulso_anomaly" {
       }
 
       resources {
-        limits   = { cpu = "0.5", memory = "512Mi" }
+        limits   = { cpu = "1", memory = "512Mi" }
         cpu_idle = false
       }
 
@@ -342,9 +344,10 @@ resource "google_cloud_run_v2_service" "pulso_anomaly" {
 # 4. pulso-llm-explainer  — Claude API + DuckDB no GCS
 # ─────────────────────────────────────────────────────────────
 resource "google_cloud_run_v2_service" "pulso_llm_explainer" {
-  name     = "pulso-llm-explainer"
-  location = var.region
-  ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY"
+  name                = "pulso-llm-explainer"
+  location            = var.region
+  deletion_protection = false
+  ingress             = "INGRESS_TRAFFIC_INTERNAL_ONLY"
 
   template {
     service_account = google_service_account.pulso_llm_explainer.email
@@ -393,7 +396,7 @@ resource "google_cloud_run_v2_service" "pulso_llm_explainer" {
       }
 
       resources {
-        limits   = { cpu = "0.5", memory = "512Mi" }
+        limits   = { cpu = "1", memory = "512Mi" }
         cpu_idle = false
       }
 
@@ -461,17 +464,17 @@ resource "google_cloud_run_v2_service" "pulso_llm_explainer" {
 # 5. pulso-serve  — FastAPI (histórico + live + WebSocket)
 # ─────────────────────────────────────────────────────────────
 resource "google_cloud_run_v2_service" "pulso_serve" {
-  name     = "pulso-serve"
-  location = var.region
-  ingress  = "INGRESS_TRAFFIC_ALL" # ponto de entrada público
+  name                = "pulso-serve"
+  location            = var.region
+  deletion_protection = false
+  ingress             = "INGRESS_TRAFFIC_ALL" # ponto de entrada público
 
   template {
     service_account = google_service_account.pulso_serve.email
 
     annotations = {
-      "autoscaling.knative.dev/minScale"      = "0"
-      "autoscaling.knative.dev/maxScale"      = "5"
-      "run.googleapis.com/cloudsql-instances" = local.cloud_sql_instance
+      "autoscaling.knative.dev/minScale" = "0"
+      "autoscaling.knative.dev/maxScale" = "5"
     }
 
     vpc_access {
@@ -530,10 +533,6 @@ resource "google_cloud_run_v2_service" "pulso_serve" {
         }
       }
 
-      env {
-        name  = "PORT"
-        value = "8080"
-      }
       env {
         name  = "PULSO_ANOMALY_DUCKDB_PATH"
         value = "/data/anomaly_explanations.duckdb"

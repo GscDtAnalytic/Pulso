@@ -2708,6 +2708,7 @@ name = "pulso"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "anthropic" },
     { name = "pulso-domain" },
     { name = "pulso-infra" },
     { name = "pulso-ingest" },
@@ -2717,7 +2718,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "anthropic" },
     { name = "anyio" },
     { name = "dbt-core" },
     { name = "dbt-duckdb" },
@@ -2735,6 +2735,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "anthropic", specifier = ">=0.40" },
     { name = "pulso-domain", editable = "libs/pulso-domain" },
     { name = "pulso-infra", editable = "libs/pulso-infra" },
     { name = "pulso-ingest", editable = "libs/pulso-ingest" },
@@ -2744,7 +2745,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "anthropic", specifier = ">=0.40" },
     { name = "anyio", specifier = ">=4.0" },
     { name = "dbt-core", specifier = ">=1.8" },
     { name = "dbt-duckdb", specifier = ">=1.8" },

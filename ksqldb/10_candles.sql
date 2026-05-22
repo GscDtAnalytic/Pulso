@@ -24,7 +24,8 @@
 CREATE TABLE candles_m1 WITH (
   KAFKA_TOPIC  = 'candles.m1',
   KEY_FORMAT   = 'KAFKA',
-  VALUE_FORMAT = 'AVRO'
+  VALUE_FORMAT = 'AVRO',
+  RETENTION_MS = 86400000
 ) AS
   SELECT
     symbol,
@@ -47,7 +48,8 @@ CREATE TABLE candles_m1 WITH (
 CREATE TABLE candles_m5 WITH (
   KAFKA_TOPIC  = 'candles.m5',
   KEY_FORMAT   = 'KAFKA',
-  VALUE_FORMAT = 'AVRO'
+  VALUE_FORMAT = 'AVRO',
+  RETENTION_MS = 86400000
 ) AS
   SELECT
     symbol,
@@ -70,7 +72,8 @@ CREATE TABLE candles_m5 WITH (
 CREATE TABLE candles_h1 WITH (
   KAFKA_TOPIC  = 'candles.h1',
   KEY_FORMAT   = 'KAFKA',
-  VALUE_FORMAT = 'AVRO'
+  VALUE_FORMAT = 'AVRO',
+  RETENTION_MS = 86400000
 ) AS
   SELECT
     symbol,

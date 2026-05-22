@@ -49,11 +49,6 @@ resource "google_cloud_run_v2_job" "soda_check" {
   location = var.region
 
   template {
-    # Proxy Cloud SQL — mesma anotação usada pelo sink e serve
-    annotations = {
-      "run.googleapis.com/cloudsql-instances" = local.cloud_sql_instance
-    }
-
     template {
       service_account = google_service_account.pulso_soda.email
       timeout         = "1800s" # 30 min — folga para espelhar tabelas grandes
@@ -67,7 +62,19 @@ resource "google_cloud_run_v2_job" "soda_check" {
         egress = "PRIVATE_RANGES_ONLY"
       }
 
+      # Cloud Run v2 Jobs conectam ao Cloud SQL via volume (anotação não é suportada em v2).
+      volumes {
+        name = "cloudsql"
+        cloud_sql_instance {
+          instances = [local.cloud_sql_instance]
+        }
+      }
+
       containers {
+        volume_mounts {
+          name       = "cloudsql"
+          mount_path = "/cloudsql"
+        }
         image   = local.image
         command = ["bash"]
         args = [

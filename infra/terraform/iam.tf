@@ -178,6 +178,22 @@ resource "google_project_iam_member" "serve_cloudsql" {
 # Deploy SA — push de imagens + update Cloud Run
 # ─────────────────────────────────────────────────────────────
 
+# Artifact Registry reader — todos os serviços Cloud Run precisam puxar a imagem
+resource "google_artifact_registry_repository_iam_member" "cloudrun_sa_readers" {
+  for_each   = toset([
+    google_service_account.pulso_ingest.email,
+    google_service_account.pulso_sink.email,
+    google_service_account.pulso_anomaly.email,
+    google_service_account.pulso_llm_explainer.email,
+    google_service_account.pulso_serve.email,
+  ])
+  project    = var.project_id
+  location   = var.region
+  repository = google_artifact_registry_repository.pulso.repository_id
+  role       = "roles/artifactregistry.reader"
+  member     = "serviceAccount:${each.value}"
+}
+
 resource "google_project_iam_member" "deploy_run_admin" {
   project = var.project_id
   role    = "roles/run.admin"

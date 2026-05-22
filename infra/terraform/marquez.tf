@@ -12,16 +12,67 @@ resource "google_service_account" "pulso_marquez" {
   display_name = "Pulso Marquez (data lineage)"
 }
 
-# Marquez lê a senha do Postgres do Secret Manager.
+# Marquez lê a senha do Postgres e o arquivo de config do Secret Manager.
 resource "google_secret_manager_secret_iam_member" "marquez_db_password" {
   secret_id = google_secret_manager_secret.db_password.secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.pulso_marquez.email}"
 }
 
+# Config do Marquez como secret — permite que POSTGRES_* env vars sejam
+# substituídas em runtime pelo Dropwizard (${VAR:-default}).
+# O marquez.dev.yml embarcado na imagem tem user/password hardcoded como
+# "marquez"; aqui criamos um config próprio que lê do Secret Manager.
+resource "google_secret_manager_secret" "marquez_config" {
+  secret_id = "pulso-marquez-config"
+  replication {
+    auto {}
+  }
+}
+
+resource "google_secret_manager_secret_version" "marquez_config" {
+  secret = google_secret_manager_secret.marquez_config.id
+  secret_data = <<-YAML
+    server:
+      applicationConnectors:
+      - type: http
+        port: $${MARQUEZ_PORT:-5000}
+        httpCompliance: RFC7230_LEGACY
+      adminConnectors:
+      - type: http
+        port: $${MARQUEZ_ADMIN_PORT:-5001}
+    db:
+      driverClass: org.postgresql.Driver
+      url: jdbc:postgresql://$${POSTGRES_HOST}:$${POSTGRES_PORT:-5432}/$${POSTGRES_DB:-marquez}
+      user: $${POSTGRES_USER:-marquez}
+      password: $${POSTGRES_PASSWORD}
+      properties:
+        charSet: UTF-8
+      minSize: 2
+      maxSize: 8
+      initialSize: 2
+    migrateOnStartup: true
+    graphql:
+      enabled: true
+    logging:
+      level: INFO
+      appenders:
+        - type: console
+    search:
+      enabled: false
+  YAML
+}
+
+resource "google_secret_manager_secret_iam_member" "marquez_config_reader" {
+  secret_id = google_secret_manager_secret.marquez_config.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.pulso_marquez.email}"
+}
+
 resource "google_cloud_run_v2_service" "marquez" {
-  name     = "pulso-marquez"
-  location = var.region
+  name                = "pulso-marquez"
+  location            = var.region
+  deletion_protection = false
   # Só serviços internos (sink, ingest) emitem lineage — sem tráfego externo.
   ingress = "INGRESS_TRAFFIC_INTERNAL_ONLY"
 
@@ -42,6 +93,20 @@ resource "google_cloud_run_v2_service" "marquez" {
       egress = "PRIVATE_RANGES_ONLY"
     }
 
+    # Monta o marquez.yml com substituição de env vars (${VAR} → valor real).
+    # O marquez.dev.yml embarcado na imagem hardcoda user/password; este
+    # secret permite injetar as credenciais reais em runtime via Dropwizard.
+    volumes {
+      name = "marquez-config"
+      secret {
+        secret = google_secret_manager_secret.marquez_config.secret_id
+        items {
+          version = "latest"
+          path    = "marquez.yml"
+        }
+      }
+    }
+
     containers {
       image = "marquezproject/marquez:0.50.0"
 
@@ -56,6 +121,15 @@ resource "google_cloud_run_v2_service" "marquez" {
         }
       }
 
+      volume_mounts {
+        name       = "marquez-config"
+        mount_path = "/etc/marquez"
+      }
+
+      env {
+        name  = "MARQUEZ_CONFIG"
+        value = "/etc/marquez/marquez.yml"
+      }
       env {
         name  = "POSTGRES_HOST"
         value = google_sql_database_instance.iceberg_catalog.private_ip_address
@@ -70,7 +144,7 @@ resource "google_cloud_run_v2_service" "marquez" {
       }
       env {
         name  = "POSTGRES_USER"
-        value = google_sql_user.pulso.name
+        value = google_sql_user.marquez.name
       }
       env {
         name = "POSTGRES_PASSWORD"
@@ -90,13 +164,12 @@ resource "google_cloud_run_v2_service" "marquez" {
         value = "5001"
       }
 
-      # Marquez (Java + migrações Flyway) leva ~1 min para subir.
       startup_probe {
         tcp_socket {
           port = 5000
         }
-        initial_delay_seconds = 30
-        failure_threshold     = 10
+        initial_delay_seconds = 90
+        failure_threshold     = 30
         period_seconds        = 10
         timeout_seconds       = 5
       }
@@ -111,7 +184,10 @@ resource "google_cloud_run_v2_service" "marquez" {
   depends_on = [
     google_project_service.apis,
     google_sql_database.marquez,
+    google_sql_user.marquez,
     google_service_networking_connection.cloudsql_private,
+    google_secret_manager_secret_version.marquez_config,
+    google_secret_manager_secret_iam_member.marquez_config_reader,
   ]
 }
 

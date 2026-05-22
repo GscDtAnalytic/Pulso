@@ -78,3 +78,10 @@ resource "google_sql_user" "pulso" {
   instance = google_sql_database_instance.iceberg_catalog.name
   password = random_password.db_password.result
 }
+
+# Marquez usa "marquez" como username fixo; mesma senha gerenciada pelo secret.
+resource "google_sql_user" "marquez" {
+  name     = "marquez"
+  instance = google_sql_database_instance.iceberg_catalog.name
+  password = random_password.db_password.result
+}
