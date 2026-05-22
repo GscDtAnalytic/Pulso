@@ -45,6 +45,16 @@ jobs:
       - name: Configurar Docker → Artifact Registry
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
+      # Captura a imagem atual de pulso-serve ANTES do deploy (usada no rollback)
+      - name: Capturar imagem anterior (rollback)
+        id: prev
+        run: |
+          PREV=$(gcloud run services describe pulso-serve \
+            --region  "${{ env.REGION }}" \
+            --project "${{ env.PROJECT_ID }}" \
+            --format  "value(spec.template.spec.containers[0].image)" 2>/dev/null || echo "")
+          echo "image=$PREV" >> "$GITHUB_OUTPUT"
+
       # Build da imagem única (cmd sobrescrito por serviço no Cloud Run)
       - name: Build da imagem
         run: |
@@ -76,9 +86,50 @@ jobs:
               --quiet
           done
 
-      - name: URL do pulso-serve
+      # Smoke test: aguarda o pulso-serve responder /health com HTTP 200.
+      # Tenta por até 90 s (9 × 10 s) — Cloud Run pode levar alguns segundos
+      # para estabilizar a nova revisão.
+      - name: Smoke test — /health
+        id: smoke
         run: |
-          gcloud run services describe pulso-serve \
+          SERVE_URL=$(gcloud run services describe pulso-serve \
             --region  "${{ env.REGION }}" \
             --project "${{ env.PROJECT_ID }}" \
-            --format  "value(status.url)"
+            --format  "value(status.url)")
+          echo "serve_url=$SERVE_URL" >> "$GITHUB_OUTPUT"
+
+          for i in $(seq 1 9); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$SERVE_URL/health" \
+              -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
+              --max-time 10 || echo "000")
+            echo "Tentativa $i — HTTP $STATUS"
+            [ "$STATUS" = "200" ] && exit 0
+            sleep 10
+          done
+
+          echo "Smoke test falhou após 90 s"
+          exit 1
+
+      # Rollback automático: se o smoke test falhou e existe imagem anterior,
+      # retrocede pulso-serve para evitar que o deploy quebrado fique no ar.
+      - name: Rollback automático (smoke falhou)
+        if: failure() && steps.prev.outputs.image != ''
+        run: |
+          echo "Revertendo pulso-serve para ${{ steps.prev.outputs.image }}"
+          SERVICES=(
+            pulso-ingest
+            pulso-sink
+            pulso-anomaly-detector
+            pulso-llm-explainer
+            pulso-serve
+          )
+          for svc in "${SERVICES[@]}"; do
+            gcloud run services update "$svc" \
+              --image   "${{ steps.prev.outputs.image }}" \
+              --region  "${{ env.REGION }}" \
+              --project "${{ env.PROJECT_ID }}" \
+              --quiet || true
+          done
+
+      - name: URL do pulso-serve
+        run: echo "serve → ${{ steps.smoke.outputs.serve_url }}"

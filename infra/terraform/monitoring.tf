@@ -8,6 +8,69 @@
 # Monitoring (PromQL nativo) em vez de um Prometheus inexistente.
 # ─────────────────────────────────────────────────────────────
 
+# ─────────────────────────────────────────────────────────────
+# Uptime check da VM Redpanda
+#
+# O GCM faz TCP probe na porta Admin do Redpanda (9644) a cada
+# minuto a partir de 3 regiões do Google. Se a porta ficar muda
+# por 5 min (5 sondas consecutivas falhando em todas as regiões),
+# o alerta dispara. Isso complementa os SLOs de freshness/lag:
+# pega o caso onde a VM inteira está down antes do lag se acumular.
+# ─────────────────────────────────────────────────────────────
+resource "google_monitoring_uptime_check_config" "redpanda" {
+  display_name = "Pulso — Redpanda broker TCP"
+  timeout      = "10s"
+  period       = "60s"
+
+  tcp_check {
+    port = 9644 # porta Admin do Redpanda (sem autenticação — apenas probe TCP)
+  }
+
+  monitored_resource {
+    type = "uptime_url"
+    labels = {
+      project_id = var.project_id
+      host       = google_compute_address.redpanda_internal.address
+    }
+  }
+
+  depends_on = [google_project_service.apis]
+}
+
+resource "google_monitoring_alert_policy" "redpanda_down" {
+  display_name = "PulsoRedpandaDown — broker inacessível"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "Redpanda TCP probe falhou"
+    condition_threshold {
+      filter          = "metric.type=\"monitoring.googleapis.com/uptime_check/check_passed\" AND resource.label.\"check_id\"=\"${google_monitoring_uptime_check_config.redpanda.uptime_check_id}\""
+      comparison      = "COMPARISON_LT"
+      threshold_value = 1
+      duration        = "300s"
+
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_NEXT_OLDER"
+        cross_series_reducer = "REDUCE_COUNT_TRUE"
+        group_by_fields    = ["resource.label.host"]
+      }
+    }
+  }
+
+  documentation {
+    content   = "O TCP probe na porta 9644 do Redpanda falhou por 5 minutos. A VM pode estar down ou reiniciando. Verifique: `gcloud compute instances describe pulso-redpanda` e `/var/log/redpanda-startup.log`."
+    mime_type = "text/markdown"
+  }
+
+  notification_channels = local.alert_channels
+
+  depends_on = [
+    google_project_service.apis,
+    google_monitoring_uptime_check_config.redpanda,
+  ]
+}
+
 # Canal de notificação por e-mail — criado só se var.alert_email for definido.
 resource "google_monitoring_notification_channel" "email" {
   count        = var.alert_email != "" ? 1 : 0

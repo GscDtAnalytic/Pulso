@@ -39,3 +39,15 @@ variable "alert_email" {
   type        = string
   default     = ""
 }
+
+variable "billing_account" {
+  description = "ID da conta de faturamento GCP (formato XXXXXX-XXXXXX-XXXXXX). Necessário para o budget alert. Vazio = sem budget."
+  type        = string
+  default     = ""
+}
+
+variable "budget_usd" {
+  description = "Teto mensal de custo em USD para o budget alert."
+  type        = number
+  default     = 60
+}

@@ -13,5 +13,10 @@ anthropic_api_key = "sk-ant-..."
 # E-mail que recebe os alertas de SLO (Cloud Monitoring). Vazio = sem notificação.
 alert_email = "voce@exemplo.com"
 
+# Budget alert de custo mensal. Vazio = sem budget.
+# Encontre o ID em: gcloud billing accounts list
+billing_account = "XXXXXX-XXXXXX-XXXXXX"
+budget_usd      = 60
+
 # Kafka/Redpanda e ksqlDB são provisionados automaticamente via Compute Engine VM.
 # Não é necessário configurar kafka_bootstrap ou schema_registry_url aqui.
