@@ -24,9 +24,9 @@ from collections.abc import Callable, Iterator
 from confluent_kafka import Consumer, KafkaError
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroDeserializer
-from confluent_kafka.serialization import MessageField, SerializationContext, StringDeserializer
+from confluent_kafka.serialization import MessageField, SerializationContext
 from loguru import logger
-from pulso_infra import Settings
+from pulso_infra import Settings, decode_ksql_windowed_key
 
 from pulso_serve import metrics
 
@@ -74,8 +74,9 @@ def kafka_candle_stream(settings: Settings) -> CandleStream:
     """Stream real: consome `serve_candle_topic` do Kafka (Avro) e gera candles.
 
     `auto.offset.reset=latest` — o push e do agora em diante; o historico vem da
-    API REST (marts). `symbol` e a chave Kafka (ver ksqldb/README.md); injetado
-    no dict como o sink do Marco 3 faz.
+    API REST (marts). A chave dos topicos `EMIT FINAL` do ksqlDB e janelada
+    (`symbol + window-start 8B`) — decodifica com `decode_ksql_windowed_key`,
+    nunca UTF-8 plano (ver pulso_infra.kafka_keys); injetado no dict como o sink.
     """
 
     def stream(stop: threading.Event) -> Iterator[dict]:
@@ -90,7 +91,6 @@ def kafka_candle_stream(settings: Settings) -> CandleStream:
         )
         sr = SchemaRegistryClient(settings.schema_registry_config())
         avro = AvroDeserializer(sr)
-        key_de = StringDeserializer("utf_8")
         consumer.subscribe([settings.serve_candle_topic])
         logger.info("Feed WebSocket consumindo '{}'.", settings.serve_candle_topic)
         try:
@@ -102,7 +102,7 @@ def kafka_candle_stream(settings: Settings) -> CandleStream:
                     if msg.error().code() != KafkaError._PARTITION_EOF:
                         logger.error("Erro no feed de candles: {}", msg.error())
                     continue
-                key = key_de(msg.key()) if msg.key() is not None else None
+                key = decode_ksql_windowed_key(msg.key())
                 value = avro(
                     msg.value(), SerializationContext(msg.topic(), MessageField.VALUE)
                 )
