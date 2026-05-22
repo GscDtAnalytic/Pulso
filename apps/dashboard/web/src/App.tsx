@@ -9,7 +9,7 @@ import type { Candle, Interval, LiveCandle } from "./types";
 
 export function App() {
   const [symbol, setSymbol] = useState("BTC-USD");
-  const [interval, setInterval] = useState<Interval>("M1");
+  const [interval, setSelectedInterval] = useState<Interval>("M1");
   const [liveCandle, setLiveCandle] = useState<LiveCandle | null>(null);
 
   const { candles, loading, error } = useCandles(symbol, interval);
@@ -45,7 +45,7 @@ export function App() {
         symbol={symbol}
         interval={interval}
         onSymbol={setSymbol}
-        onInterval={setInterval}
+        onInterval={setSelectedInterval}
       />
       {loading && <p style={{ color: "#888" }}>Carregando…</p>}
       {error && <p style={{ color: "#e57373" }}>Erro: {error}</p>}
