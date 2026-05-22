@@ -32,6 +32,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Trim espaços em variáveis vindas do GitHub UI (copia/cola pode inserir trailing space)
+      - name: Normalizar AR_URL
+        run: echo "AR_URL=$(echo "$AR_URL" | xargs)" >> "$GITHUB_ENV"
+
       # Autenticação via Workload Identity Federation (sem chave JSON)
       - id: auth
         uses: google-github-actions/auth@v2
