@@ -9,16 +9,23 @@ from __future__ import annotations
 import asyncio
 import contextlib
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import uvicorn
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from prometheus_client import make_asgi_app
 from pulso_infra import get_settings
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+
+# Caminho do dist/ compilado pelo Dockerfile (web-builder stage).
+# Em dev local sem build, o diretório não existe e o serving estático é omitido.
+_DIST = Path(__file__).parents[3] / "web" / "dist"
 
 from pulso_serve import metrics
 from pulso_serve.anomaly_store import AnomalyStore, build_anomaly_store
@@ -106,6 +113,16 @@ def create_app(
 
     app.include_router(router)
     app.mount("/metrics", make_asgi_app())
+
+    # Serving do frontend React compilado (Dockerfile web-builder stage).
+    # /assets/* são os JS/CSS com hash; tudo o mais retorna index.html (SPA).
+    # Omitido em dev local (dist/ não existe) para não interferir com o proxy Vite.
+    if _DIST.exists():
+        app.mount("/assets", StaticFiles(directory=_DIST / "assets"), name="assets")
+
+        @app.get("/{full_path:path}", include_in_schema=False)
+        async def _spa_fallback(full_path: str) -> FileResponse:
+            return FileResponse(_DIST / "index.html")
 
     return app
 

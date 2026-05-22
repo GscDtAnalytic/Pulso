@@ -1,4 +1,15 @@
 # ─────────────────────────────────────────────────────────────
+# Frontend build — compila o React (Vite) sem VITE_API_URL.
+# As URLs /api/* são relativas; o mesmo host serve API e UI.
+# ─────────────────────────────────────────────────────────────
+FROM node:22-slim AS web-builder
+WORKDIR /web
+COPY apps/dashboard/web/package*.json ./
+RUN npm ci --ignore-scripts
+COPY apps/dashboard/web/ ./
+RUN npm run build
+
+# ─────────────────────────────────────────────────────────────
 # Build — instala o workspace uv com todas as dependências.
 # Uma única imagem; o CMD é sobrescrito por serviço no Cloud Run.
 # ─────────────────────────────────────────────────────────────
@@ -20,6 +31,9 @@ COPY contracts/ contracts/
 COPY tools/ tools/
 COPY governance/ governance/
 COPY dbt/ dbt/
+
+# Frontend compilado copiado para o workspace (pulso-serve serve como estático)
+COPY --from=web-builder /web/dist apps/dashboard/web/dist/
 
 # Instala todas as dependências sem pacotes de dev
 RUN uv sync --frozen --no-dev
