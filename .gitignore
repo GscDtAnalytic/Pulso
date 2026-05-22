@@ -39,9 +39,13 @@ dbt/dbt_packages/
 dbt/logs/
 dbt/.user.yml
 
-# Frontend
+# Frontend (Next.js)
 node_modules/
 dist/
+apps/dashboard/web/out/
+apps/dashboard/web/.next/
+apps/dashboard/web/next-env.d.ts
+apps/dashboard/web/tsconfig.tsbuildinfo
 
 # IDE / OS
 .DS_Store

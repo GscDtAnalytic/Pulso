@@ -1,13 +1,15 @@
 # ─────────────────────────────────────────────────────────────
-# Frontend build — compila o React (Vite) sem VITE_API_URL.
-# As URLs /api/* são relativas; o mesmo host serve API e UI.
+# Frontend build — Next.js (static export) sem NEXT_PUBLIC_API_URL.
+# As URLs /api/* ficam relativas; o mesmo host (FastAPI) serve API e UI.
+# `next build` com output:'export' emite HTML/CSS/JS estáticos em /web/out.
 # ─────────────────────────────────────────────────────────────
 FROM node:22-slim AS web-builder
 WORKDIR /web
 COPY apps/dashboard/web/package*.json ./
 RUN npm ci --ignore-scripts
 COPY apps/dashboard/web/ ./
-RUN npm run build
+# Garante build limpo (sem .env.local de dev apontando para prod) — paths relativos.
+RUN rm -f .env.local && npm run build
 
 # ─────────────────────────────────────────────────────────────
 # Build — instala o workspace uv com todas as dependências.
@@ -32,8 +34,8 @@ COPY tools/ tools/
 COPY governance/ governance/
 COPY dbt/ dbt/
 
-# Frontend compilado copiado para o workspace (pulso-serve serve como estático)
-COPY --from=web-builder /web/dist apps/dashboard/web/dist/
+# Frontend exportado copiado para o workspace (pulso-serve serve como estático)
+COPY --from=web-builder /web/out apps/dashboard/web/out/
 
 # Instala todas as dependências sem pacotes de dev
 RUN uv sync --frozen --no-dev

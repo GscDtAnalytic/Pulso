@@ -34,6 +34,8 @@ infra/terraform/terraform.tfstate*
 .github/
 memory/
 
-# Node (frontend não está no container de backend)
+# Node (artefatos locais do frontend — o build acontece no stage web-builder)
 apps/dashboard/web/node_modules/
 apps/dashboard/web/dist/
+apps/dashboard/web/out/
+apps/dashboard/web/.next/

@@ -33,9 +33,10 @@ from pulso_serve.store import MarketStore, build_store
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-# Caminho do dist/ compilado pelo Dockerfile (web-builder stage).
-# Em dev local sem build, o diretório não existe e o serving estático é omitido.
-_DIST = Path(__file__).parents[3] / "web" / "dist"
+# Caminho do out/ exportado pelo Next.js (Dockerfile web-builder stage, `next build`
+# com output: 'export'). Em dev local sem build o diretório não existe e o serving
+# estático é omitido (o `next dev` serve a UI e fala com esta API por CORS).
+_DIST = Path(__file__).parents[3] / "web" / "out"
 
 
 def _client_ip(request: Request) -> str:
@@ -114,15 +115,21 @@ def create_app(
     app.include_router(router)
     app.mount("/metrics", make_asgi_app())
 
-    # Serving do frontend React compilado (Dockerfile web-builder stage).
-    # /assets/* são os JS/CSS com hash; tudo o mais retorna index.html (SPA).
-    # Omitido em dev local (dist/ não existe) para não interferir com o proxy Vite.
+    # Serving do frontend Next.js exportado (Dockerfile web-builder stage).
+    # /_next/static/* são os JS/CSS com hash; tudo o mais cai no index.html (SPA).
+    # Omitido em dev local (out/ não existe) — lá o `next dev` serve a UI.
     if _DIST.exists():
-        app.mount("/assets", StaticFiles(directory=_DIST / "assets"), name="assets")
+        app.mount("/_next", StaticFiles(directory=_DIST / "_next"), name="next-static")
 
         @app.get("/{full_path:path}", include_in_schema=False)
         async def _spa_fallback(full_path: str) -> FileResponse:
-            return FileResponse(_DIST / "index.html")
+            # Serve o arquivo estático real se existir (favicon, 404.html, etc.),
+            # com guarda contra path traversal; senão devolve index.html.
+            base = _DIST.resolve()
+            candidate = (base / full_path).resolve()
+            if full_path and str(candidate).startswith(str(base)) and candidate.is_file():
+                return FileResponse(candidate)
+            return FileResponse(base / "index.html")
 
     return app
 
