@@ -1,0 +1,11 @@
+# CVE-2024-41672 — duckdb 1.0.0 sniff_csv bypass de enable_external_access
+#
+# Upgrade path bloqueado por incompatibilidade de ecossistema:
+#   duckdb>=1.1 → soda-core-duckdb cai para 3.3.x → protobuf<5
+#   dbt-core>=1.9 → protobuf>=5 — as duas não coexistem no mesmo venv.
+#
+# Não explorável no Pulso: o projeto não usa enable_external_access=False
+# como boundary de segurança — DuckDB é usado para queries analíticas sobre
+# dados do lake, sem sniff_csv exposto a input externo não-confiável.
+# Reavaliar quando dbt-core ou soda-core resolverem a incompatibilidade de protobuf.
+CVE-2024-41672
