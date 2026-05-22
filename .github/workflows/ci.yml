@@ -98,16 +98,17 @@ jobs:
           enable-cache: true
       - run: uv sync --all-extras --dev
       - name: Validar YAML de governanca
-        run: uv run python -c "
-import yaml, pathlib, sys
-files = list(pathlib.Path('governance').rglob('*.yml'))
-errors = []
-for f in files:
-    try:
-        yaml.safe_load(f.read_text())
-    except yaml.YAMLError as e:
-        errors.append(f'{f}: {e}')
-if errors:
-    print('YAML invalido:', *errors, sep='\n'); sys.exit(1)
-print(f'OK — {len(files)} arquivo(s) de governanca validos.')
-"
+        run: |
+          uv run python - <<'PYEOF'
+          import yaml, pathlib, sys
+          files = list(pathlib.Path('governance').rglob('*.yml'))
+          errors = []
+          for f in files:
+              try:
+                  yaml.safe_load(f.read_text())
+              except yaml.YAMLError as e:
+                  errors.append(f'{f}: {e}')
+          if errors:
+              print('YAML invalido:', *errors, sep='\n'); sys.exit(1)
+          print(f'OK -- {len(files)} arquivo(s) de governanca validos.')
+          PYEOF
