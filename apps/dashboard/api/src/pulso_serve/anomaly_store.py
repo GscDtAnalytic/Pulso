@@ -60,9 +60,15 @@ MAX_LIMIT = 500
 class AnomalyStore:
     """Leitura e escrita da tabela `anomaly_explanations` em DuckDB."""
 
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str, *, read_only: bool = False) -> None:
         self._path = path
-        # Cria a tabela na primeira vez; idempotente.
+        self._read_only = read_only
+        if read_only:
+            # Leitor (pulso-serve): o arquivo DuckDB é montado read-only (volume GCS).
+            # A tabela já foi criada pelo escritor (llm_explainer); abrir em modo
+            # escrita para rodar o DDL falharia no filesystem read-only.
+            return
+        # Escritor (llm_explainer): cria a tabela na primeira vez; idempotente.
         with duckdb.connect(path) as con:
             con.execute(_DDL)
 
@@ -120,8 +126,8 @@ class AnomalyStore:
         return rows
 
 
-def build_anomaly_store(path: str) -> AnomalyStore:
-    return AnomalyStore(path)
+def build_anomaly_store(path: str, *, read_only: bool = False) -> AnomalyStore:
+    return AnomalyStore(path, read_only=read_only)
 
 
 # Sentinel de "ainda nao explicado" — gravado quando o detector publica a anomalia

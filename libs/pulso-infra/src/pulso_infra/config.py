@@ -74,7 +74,10 @@ class Settings(BaseSettings):
 
     # --- Ingestao (producer, Marco 1) ---
     producer_client_id: str = "pulso-ingest"
-    binance_ws_url: str = "wss://stream.binance.com:9443/stream"
+    # data-stream.binance.vision: endpoint público de market-data da Binance, mesmo
+    # formato de combined stream que stream.binance.com mas SEM geo-block (este último
+    # responde HTTP 451 a IPs de regiões restritas, incl. GCP US). Override: PULSO_BINANCE_WS_URL.
+    binance_ws_url: str = "wss://data-stream.binance.vision:9443/stream"
     coinbase_ws_url: str = "wss://advanced-trade-ws.coinbase.com"
     # Falhas consecutivas que abrem o circuito; segundos em OPEN antes de sondar.
     circuit_failure_threshold: int = 5

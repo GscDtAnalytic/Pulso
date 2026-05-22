@@ -122,7 +122,9 @@ def main() -> None:
     # (criado pelo llm_explainer na primeira execucao).
     anomaly_store: AnomalyStore | None = None
     if os.path.exists(settings.anomaly_duckdb_path):
-        anomaly_store = build_anomaly_store(settings.anomaly_duckdb_path)
+        # serve é leitor: o DuckDB é montado read-only (volume GCS); o escritor
+        # é o llm_explainer. Abrir em modo escrita falharia no mount read-only.
+        anomaly_store = build_anomaly_store(settings.anomaly_duckdb_path, read_only=True)
 
     app = create_app(settings, store, ksql, stream, anomaly_store)
     # Cloud Run injeta $PORT; fallback para serve_port em dev.

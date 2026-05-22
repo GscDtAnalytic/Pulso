@@ -17,21 +17,39 @@ from dataclasses import dataclass
 
 from pulso_infra import Settings
 
-from pulso_storage.consumer import DecodeFn
+from pulso_storage.consumer import DecodeFn, KeyDecodeFn, decode_key_utf8
 from pulso_storage.tables import CANDLES, TRADES, TableSpec
 
 # Topicos de candle: lista canonica e fixa (CLAUDE.md — "Topicos Kafka").
 CANDLE_TOPICS: tuple[str, ...] = ("candles.m1", "candles.m5", "candles.h1")
 
+# Sufixo binario que o ksqlDB anexa a chave de uma TABLE janelada: o window-start
+# como long big-endian (8 bytes). Ver ksqldb/README.md.
+_KSQL_WINDOW_SUFFIX = 8
+
 
 @dataclass(frozen=True, slots=True)
 class Pipeline:
-    """Uma rota topico(s) -> tabela do lake, com a funcao de decode do value."""
+    """Uma rota topico(s) -> tabela do lake, com decode de value e de chave."""
 
     name: str
     spec: TableSpec
     topics: tuple[str, ...]
     decode: DecodeFn
+    key_decode: KeyDecodeFn = decode_key_utf8
+
+
+def _decode_windowed_symbol_key(raw: bytes | None) -> str | None:
+    """Extrai o `symbol` da chave janelada do ksqlDB (`symbol + window-start 8B`).
+
+    Decodificar a chave inteira como UTF-8 quebra: os 8 bytes finais sao um long
+    binario (timestamp), nao texto. Fatiamos o sufixo e decodificamos o prefixo.
+    """
+    if raw is None:
+        return None
+    if len(raw) <= _KSQL_WINDOW_SUFFIX:
+        raise ValueError(f"Chave de candle curta demais para ser janelada: {len(raw)} bytes")
+    return raw[:-_KSQL_WINDOW_SUFFIX].decode("utf-8")
 
 
 def _decode_trade(_key: str | None, value: dict) -> dict:
@@ -50,5 +68,11 @@ def build_pipelines(settings: Settings) -> tuple[Pipeline, ...]:
     """Os pipelines ativos do sink."""
     return (
         Pipeline("trades", TRADES, (settings.topic_trades,), _decode_trade),
-        Pipeline("candles", CANDLES, CANDLE_TOPICS, _decode_candle),
+        Pipeline(
+            "candles",
+            CANDLES,
+            CANDLE_TOPICS,
+            _decode_candle,
+            key_decode=_decode_windowed_symbol_key,
+        ),
     )

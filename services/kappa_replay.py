@@ -82,6 +82,7 @@ def run_replay(
             group_id=f"{group_id}-{pipeline.name}",
             start_offsets={} if from_beginning else None,
             from_timestamp=from_ts if not from_beginning else None,
+            key_decode=pipeline.key_decode,
         )
         try:
             for records, offsets in consumer.batches(

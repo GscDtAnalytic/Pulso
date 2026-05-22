@@ -23,7 +23,7 @@ from collections.abc import Callable, Iterator
 from confluent_kafka import OFFSET_BEGINNING, Consumer, KafkaError, TopicPartition
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroDeserializer
-from confluent_kafka.serialization import MessageField, SerializationContext, StringDeserializer
+from confluent_kafka.serialization import MessageField, SerializationContext
 from loguru import logger
 from pulso_infra import Settings
 
@@ -31,7 +31,16 @@ from pulso_storage import metrics
 
 # Um registro decodificado: (chave Kafka — symbol — pode ser None, value Avro dict).
 DecodeFn = Callable[[str | None, dict], dict]
+# Decodifica a chave Kafka crua (bytes) -> symbol. O formato depende do pipeline:
+# `trades.raw` carrega o symbol como string simples; os tópicos de candle vêm de
+# TABLEs janeladas do ksqlDB, cuja chave é `symbol + window-start (8 bytes)`.
+KeyDecodeFn = Callable[[bytes | None], str | None]
 Offsets = dict[tuple[str, int], int]
+
+
+def decode_key_utf8(raw: bytes | None) -> str | None:
+    """Chave Kafka como string UTF-8 simples (default — produtores do Marco 1)."""
+    return raw.decode("utf-8") if raw is not None else None
 
 
 class BatchingConsumer:
@@ -44,10 +53,12 @@ class BatchingConsumer:
         decode: DecodeFn,
         initial_offsets: Offsets,
         stop_event: threading.Event | None = None,
+        key_decode: KeyDecodeFn = decode_key_utf8,
     ) -> None:
         self._settings = settings
         self._topics = topics
         self._decode = decode
+        self._key_decode = key_decode
         self._stop = stop_event or threading.Event()
         self._consumer = Consumer(
             {
@@ -60,7 +71,6 @@ class BatchingConsumer:
         )
         sr = SchemaRegistryClient(settings.schema_registry_config())
         self._avro = AvroDeserializer(sr)
-        self._key_de = StringDeserializer("utf_8")
         self._assign(initial_offsets)
 
     def _assign(self, initial_offsets: Offsets) -> None:
@@ -114,7 +124,7 @@ class BatchingConsumer:
 
     def _decode_msg(self, msg) -> dict:  # noqa: ANN001 (tipo ditado pela lib)
         topic = msg.topic()
-        key = self._key_de(msg.key()) if msg.key() is not None else None
+        key = self._key_decode(msg.key())
         value = self._avro(msg.value(), SerializationContext(topic, MessageField.VALUE))
         return self._decode(key, value)
 

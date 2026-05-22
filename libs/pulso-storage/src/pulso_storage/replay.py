@@ -29,11 +29,11 @@ from datetime import UTC, datetime
 from confluent_kafka import OFFSET_BEGINNING, Consumer, KafkaError, TopicPartition
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroDeserializer
-from confluent_kafka.serialization import MessageField, SerializationContext, StringDeserializer
+from confluent_kafka.serialization import MessageField, SerializationContext
 from loguru import logger
 from pulso_infra import Settings
 
-from pulso_storage.consumer import DecodeFn
+from pulso_storage.consumer import DecodeFn, KeyDecodeFn, decode_key_utf8
 
 # Offsets: (tópico, partição) -> próximo offset a consumir.
 Offsets = dict[tuple[str, int], int]
@@ -157,6 +157,7 @@ class BoundedConsumer:
         group_id: str,
         start_offsets: Offsets | None = None,
         from_timestamp: datetime | None = None,
+        key_decode: KeyDecodeFn = decode_key_utf8,
     ) -> None:
         """
         Args:
@@ -164,10 +165,13 @@ class BoundedConsumer:
                            None ou ausente de uma partição => OFFSET_BEGINNING.
             from_timestamp: se fornecido, sobrepõe `start_offsets` resolvendo
                             o primeiro offset >= o timestamp.
+            key_decode: como extrair o symbol da chave Kafka crua (candles vêm
+                        de TABLEs janeladas do ksqlDB — chave não é string simples).
         """
         self._settings = settings
         self._topics = topics
         self._decode = decode
+        self._key_decode = key_decode
 
         # 1. HWM antes de criar o consumer (snapshot do log agora).
         self._hwm = _snapshot_hwm(settings, topics)
@@ -193,7 +197,6 @@ class BoundedConsumer:
         )
         sr = SchemaRegistryClient(settings.schema_registry_config())
         self._avro = AvroDeserializer(sr)
-        self._key_de = StringDeserializer("utf_8")
         self._assign(resolved)
 
     def _assign(self, start_offsets: Offsets) -> None:
@@ -235,7 +238,7 @@ class BoundedConsumer:
             now = time.monotonic()
 
             if msg is not None and msg.error() is None:
-                key = self._key_de(msg.key()) if msg.key() else None
+                key = self._key_decode(msg.key())
                 value = self._avro(
                     msg.value(),
                     SerializationContext(msg.topic(), MessageField.VALUE),

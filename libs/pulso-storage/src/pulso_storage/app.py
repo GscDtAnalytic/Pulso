@@ -56,6 +56,7 @@ def _run_pipeline(
             pipeline.decode,
             read_committed_offsets(table),
             stop_event,
+            key_decode=pipeline.key_decode,
         )
         logger.info("Pipeline '{}' ativo -> {}", pipeline.name, pipeline.spec.identifier)
         for records, offsets in consumer.batches():

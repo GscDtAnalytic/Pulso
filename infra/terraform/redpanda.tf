@@ -132,8 +132,15 @@ resource "google_compute_instance" "redpanda" {
     enable-oslogin = "TRUE"
   }
 
-  # allow_stopping_for_update: trocar o startup script não força recriar a VM
   allow_stopping_for_update = true
+
+  # metadata_startup_script é ForceNew no provider: editá-lo recriaria a VM
+  # (destruindo o broker em produção). O script roda só no primeiro boot e os
+  # efeitos (config do cluster, redpanda.yaml) persistem nos discos. Ignoramos
+  # mudanças aqui — o script no código vale para recriações deliberadas (taint).
+  lifecycle {
+    ignore_changes = [metadata_startup_script]
+  }
 
   metadata_startup_script = <<-SCRIPT
     #!/bin/bash
