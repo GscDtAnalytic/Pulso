@@ -58,3 +58,6 @@ CLAUDE.md
 
 # Notas locais de scratch (memória persistente real fica em ~/.claude/)
 memory/
+
+# Script de produção local — não versionar
+tools/prod-freeze.sh
