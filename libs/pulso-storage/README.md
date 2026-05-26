@@ -12,7 +12,7 @@ candles.m1/m5/h1      ──┘                          ─▶ silver.candles  
 
 ## Por que PyIceberg (e não Kafka Connect)
 
-O `ARCHITECTURE_PROPOSAL.md` deixou as duas portas abertas. Escolhido **PyIceberg**:
+As duas portas estavam abertas no desenho. Escolhido **PyIceberg**:
 mantém o sink em Python (mesma stack do producer do Marco 1), testável 100% offline
 no `pytest` (catálogo sqlite + warehouse local), sem um conector Java para operar.
 O custo — escala de escrita — está anotado abaixo como caminho de evolução, não
@@ -84,8 +84,7 @@ con.sql("SELECT symbol, count(*) FROM snapshot GROUP BY 1").show()
 - **Escala de escrita.** O `upsert` do PyIceberg varre as partições tocadas pelo
   batch para o anti-join. `day + symbol` poda essa varredura e batches pequenos a
   mantêm barata; em volume alto, o MERGE do Trino ou o Kafka Connect Iceberg sink
-  escalam melhor — caminho de evolução, mesmo tom da nota Flink do
-  `ARCHITECTURE_PROPOSAL.md`.
+  escalam melhor — caminho de evolução, mesmo tom da nota Flink.
 - **Compactação.** `expire_snapshots` roda aqui (PyIceberg). `rewrite_data_files`
   (bin-pack) ainda não é exposto pelo PyIceberg 0.11 — roda pelo Trino
   (`ALTER TABLE … EXECUTE optimize`) quando ele entrar como engine no Marco 4.

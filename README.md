@@ -72,7 +72,7 @@ Cada etapa é desenhada para que, se a anterior falhar e voltar, nada se perca e
 
 ## A parte técnica
 
-A partir daqui, o foco é em **como** isso foi construído e nas decisões de engenharia. Justificativa completa de cada escolha em [`ARCHITECTURE_PROPOSAL.md`](ARCHITECTURE_PROPOSAL.md).
+A partir daqui, o foco é em **como** isso foi construído e nas decisões de engenharia.
 
 ### Em uma linha
 

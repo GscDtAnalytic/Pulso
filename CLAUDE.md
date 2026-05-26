@@ -1,6 +1,6 @@
 # Pulso — guia para o agente
 
-Plataforma de analytics de mercado cripto em **tempo real**. Streaming-first. Leia `ARCHITECTURE_PROPOSAL.md` para o desenho completo e `README.md` para o resumo.
+Plataforma de analytics de mercado cripto em **tempo real**. Streaming-first. Leia `README.md` para o resumo e o desenho completo.
 
 ## Princípios não-negociáveis
 

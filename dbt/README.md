@@ -2,8 +2,7 @@
 
 Transforma o lakehouse Iceberg (bronze/silver, Marco 3) na camada **gold**: marts
 testadas que a API e o dashboard servem. Um modelo, **dois engines** — DuckDB em
-dev, Trino em prod — sobre o mesmo dado (princípio multi-engine do
-`ARCHITECTURE_PROPOSAL.md`).
+dev, Trino em prod — sobre o mesmo dado (princípio multi-engine do projeto).
 
 ## Camadas
 

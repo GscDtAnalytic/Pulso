@@ -37,8 +37,8 @@ A ordem dos números é a ordem de aplicação (cada um depende do anterior).
 
 `open`/`close` usam `EARLIEST_BY_OFFSET`/`LATEST_BY_OFFSET` — ordem de **offset** dentro
 da janela. O ksqlDB não tem "first/last by event-time"; o *grace period* cobre o
-reordenamento antes do fechamento. Mesmo trade-off da nota sobre Flink no
-`ARCHITECTURE_PROPOSAL.md`. `high`/`low`/`volume`/`vwap` são comutativos — imunes a
+reordenamento antes do fechamento. Mesmo trade-off da nota sobre Flink.
+`high`/`low`/`volume`/`vwap` são comutativos — imunes a
 ordem. `vwap = sum(price*qty)/sum(qty)`; `sum(qty)` nunca é 0 numa janela emitida
 (`quantity > 0` e a janela só fecha com ≥1 trade).
 
