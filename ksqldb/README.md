@@ -28,7 +28,7 @@ A ordem dos números é a ordem de aplicação (cada um depende do anterior).
 - **Casing:** todo alias leva crases (`` `open` ``, `` `interval` ``…). Sem crases, o
   ksqlDB registra o campo em MAIÚSCULO no Avro e o schema diverge de `candle.avsc` —
   quebraria "schema é contrato".
-- **Volatilidade não é tópico do barramento.** A lista canônica de tópicos (CLAUDE.md) é
+- **Volatilidade não é tópico do barramento.** A lista canônica de tópicos é
   fixa. `volatility_5m` é materializada só para pull query.
 - **Grace por intervalo:** m1 = 10s, m5 = 30s, h1 = 60s. Valores iniciais conservadores
   — calibrar pelo p99 do skew (`ingest_time - event_time`) medido no producer.

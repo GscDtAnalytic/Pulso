@@ -27,8 +27,7 @@ seed: symbols   ─────────────────────�
 | `fct_candle` | mart | candle `(symbol, interval, window_start)` | table |
 | `fct_symbol_daily` | mart | `(symbol, trade_date)` | table |
 
-Convenções de nome: `stg_<fonte>__<entidade>`, `int_<domínio>__<desc>`, `fct_`/`dim_`
-(CLAUDE.md).
+Convenções de nome: `stg_<fonte>__<entidade>`, `int_<domínio>__<desc>`, `fct_`/`dim_`.
 
 ## Os dois targets
 
@@ -70,5 +69,5 @@ contratos de invariante já moram aqui.
 ## Sincronia do seed
 
 `seeds/symbols.csv` é cópia fiel de `libs/pulso-domain/seeds/symbols.csv` (fonte de
-verdade única — CLAUDE.md #5). `make dbt-seed-sync` recopia; o teste
+verdade única). `make dbt-seed-sync` recopia; o teste
 `test_dbt_seed_matches_domain_seed` falha-loud se divergirem.

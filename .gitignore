@@ -51,9 +51,10 @@ apps/dashboard/web/tsconfig.tsbuildinfo
 .DS_Store
 .idea/
 .vscode/
-# Docs de desenvolvimento — não versionar (handoff, runbook, notas de sessão)
+# Docs de desenvolvimento — não versionar (handoff, runbook, guia do agente, notas de sessão)
 HANDOFF*.md
 RUNBOOK*.md
+CLAUDE.md
 
 # Notas locais de scratch (memória persistente real fica em ~/.claude/)
 memory/
