@@ -1,6 +1,18 @@
 // Formatação consistente em todo o dashboard. Números monoespaçados, casas
 // decimais adaptadas à escala do ativo (BTC ~77k vs DOGE ~0.15).
 
+// Placeholder único para valor ausente — evita crash de runtime quando o
+// backend entrega null/undefined (ex.: campo de candle sem trades no dia).
+const EMPTY = "—";
+
+// Aceita nullish em todos os formatadores numéricos: a UI mostra "—" em vez de
+// quebrar a página inteira (toFixed/toLocaleString sobre undefined lança).
+type Nullable = number | null | undefined;
+
+function isNum(value: Nullable): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
 export function priceDecimals(value: number): number {
   if (value >= 1000) return 2;
   if (value >= 1) return 3;
@@ -8,7 +20,8 @@ export function priceDecimals(value: number): number {
   return 7;
 }
 
-export function fmtPrice(value: number, decimals?: number): string {
+export function fmtPrice(value: Nullable, decimals?: number): string {
+  if (!isNum(value)) return EMPTY;
   const d = decimals ?? priceDecimals(value);
   return value.toLocaleString("en-US", {
     minimumFractionDigits: d,
@@ -16,11 +29,13 @@ export function fmtPrice(value: number, decimals?: number): string {
   });
 }
 
-export function fmtUsd(value: number): string {
+export function fmtUsd(value: Nullable): string {
+  if (!isNum(value)) return EMPTY;
   return `$${fmtPrice(value)}`;
 }
 
-export function fmtVolume(value: number): string {
+export function fmtVolume(value: Nullable): string {
+  if (!isNum(value)) return EMPTY;
   if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(2)}B`;
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
   if (value >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
@@ -28,17 +43,19 @@ export function fmtVolume(value: number): string {
   return value.toFixed(4);
 }
 
-export function fmtCount(value: number): string {
+export function fmtCount(value: Nullable): string {
+  if (!isNum(value)) return EMPTY;
   return value.toLocaleString("en-US");
 }
 
-export function fmtPct(value: number, digits = 2): string {
+export function fmtPct(value: Nullable, digits = 2): string {
+  if (!isNum(value)) return EMPTY;
   const sign = value > 0 ? "+" : "";
   return `${sign}${value.toFixed(digits)}%`;
 }
 
-export function fmtMultiple(current: number, baseline: number): string {
-  if (!baseline) return "—";
+export function fmtMultiple(current: Nullable, baseline: Nullable): string {
+  if (!isNum(current) || !isNum(baseline) || !baseline) return EMPTY;
   return `${(current / baseline).toFixed(1)}x`;
 }
 

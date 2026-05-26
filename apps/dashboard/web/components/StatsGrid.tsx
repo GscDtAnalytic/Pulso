@@ -63,7 +63,7 @@ export function StatsGrid({ latest, today }: Props) {
             <Stat label="Trades" value={fmtCount(today.trade_count)} />
           </div>
 
-          {latest && (
+          {latest && latest.return_pct != null && (
             <div className="mt-3 flex items-center justify-between border-t border-line/60 pt-3 text-xs">
               <span className="text-ink-dim">Último candle selado</span>
               <span
