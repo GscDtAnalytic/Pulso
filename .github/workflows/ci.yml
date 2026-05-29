@@ -19,8 +19,19 @@ jobs:
         run: uv run ruff check .
       - name: Contratos de camada (import-linter)
         run: uv run lint-imports
-      - name: Testes
-        run: uv run pytest
+      - name: Testes (com cobertura)
+        run: >
+          uv run pytest
+          --cov=pulso_domain --cov=pulso_infra --cov=pulso_ingest
+          --cov=pulso_storage --cov=pulso_serve
+          --cov-report=xml --cov-report=term-missing
+      - name: Upload de cobertura para o Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   ksql-test:
     # Testes de topologia ksqlDB: o ksql-test-runner roda offline (sem broker, sem
