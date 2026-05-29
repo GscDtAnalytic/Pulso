@@ -4,7 +4,7 @@
 
 > Uma plataforma que acompanha o mercado de criptomoedas **em tempo real**. Ela capta cada negócio assim que acontece, transforma esse fluxo em informação confiável e explica, em linguagem simples, os momentos em que o mercado se move fora do normal.
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)]() [![uv workspace](https://img.shields.io/badge/uv-workspace-purple)]() [![Kafka](https://img.shields.io/badge/bus-Redpanda%2FKafka-black)]() [![ksqlDB](https://img.shields.io/badge/stream-ksqlDB-orange)]() [![Iceberg](https://img.shields.io/badge/lakehouse-Iceberg-blue)]() [![GCP](https://img.shields.io/badge/cloud-GCP-4285F4)]() [![License](https://img.shields.io/badge/license-MIT-green)]()
+[![CI](https://github.com/GscDtAnalytic/Pulso/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GscDtAnalytic/Pulso/actions/workflows/ci.yml) [![codecov](https://codecov.io/gh/GscDtAnalytic/Pulso/branch/main/graph/badge.svg)](https://codecov.io/gh/GscDtAnalytic/Pulso) [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)]() [![uv workspace](https://img.shields.io/badge/uv-workspace-purple)]() [![Kafka](https://img.shields.io/badge/bus-Redpanda%2FKafka-black)]() [![ksqlDB](https://img.shields.io/badge/stream-ksqlDB-orange)]() [![Iceberg](https://img.shields.io/badge/lakehouse-Iceberg-blue)]() [![GCP](https://img.shields.io/badge/cloud-GCP-4285F4)]() [![License](https://img.shields.io/badge/license-MIT-green)]()
 
 ---
 
